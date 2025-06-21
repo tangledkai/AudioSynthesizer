@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> AudioSynthesizer </title>
-    <!-- 引入 LAME MP3 編碼器 -->
+    <title>Audio Synthesizer</title>
     <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -49,17 +48,9 @@
         select { width: 100%; padding: 12px 16px; background: linear-gradient(145deg, #2a2a2a, #1a1a1a); border: 2px solid rgba(255, 215, 0, 0.3); border-radius: 12px; color: #ffd700; }
         .keyboard { display: flex; justify-content: center; margin-top: 20px; flex-wrap: wrap; gap: 2px; }
         .key { width: 45px; height: 150px; background: #f5f5f5; border: 2px solid #bbb; border-radius: 0 0 12px 12px; cursor: pointer; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 12px; font-size: 12px; color: #333; transition: all 0.1s ease-out; user-select: none; }
-        .key.active { 
-            background: linear-gradient(180deg, #ffd700 0%, #ffb700 50%, #ff8f00 100%); 
-            transform: translateY(6px);
-            box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
-        }
+        .key.active { background: linear-gradient(180deg, #ffd700 0%, #ffb700 50%, #ff8f00 100%); transform: translateY(6px); box-shadow: 0 0 20px rgba(255, 215, 0, 0.6); }
         .black-key { background: #1a1a1a; color: #ffd700; height: 100px; width: 28px; margin: 0 -14px; z-index: 1; border-radius: 0 0 8px 8px; }
-        .black-key.active {
-            background: linear-gradient(180deg, #ffb700 0%, #ff8f00 100%);
-            transform: translateY(4px);
-            box-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
-        }
+        .black-key.active { background: linear-gradient(180deg, #ffb700 0%, #ff8f00 100%); transform: translateY(4px); box-shadow: 0 0 15px rgba(255, 215, 0, 0.8); }
         .value-display { color: rgba(255, 215, 0, 0.8); font-size: 0.85em; text-align: right; margin-top: 5px;}
         .sequencer-editor { position: relative; flex-grow: 1; }
         #sequencerCode, #sequencerHighlight { width: 100%; height: 100%; padding: 15px; font-family: 'Courier New', Courier, monospace; font-size: 16px; line-height: 1.6; border-radius: 12px; white-space: pre; overflow-wrap: normal; overflow-x: auto; }
@@ -71,138 +62,204 @@
         .sequencer-buttons button { flex-grow: 1; padding: 15px; font-size: 1.1em; color: #1a1a1a; background: linear-gradient(135deg, #ffd700 0%, #ffb700 100%); border: none; border-radius: 12px; cursor: pointer; min-width: 100px; }
         .sequencer-buttons button:disabled { background: #555; color: #888; cursor: not-allowed; }
         .sequencer-buttons button#stopSequenceBtn { background: linear-gradient(135deg, #555 0%, #333 100%); color: #ccc; }
-        .footer-link {
-            position: fixed;
-            bottom: 15px;
-            left: 20px;
-            color: #8fb1bf;
-            text-decoration: none;
-            font-size: 14px;
-            transition: color 0.3s ease;
-        }
-        .footer-link:hover {
-            color: #b3d7e8;
-        }
+        .footer-link { position: fixed; bottom: 15px; left: 20px; color: #8fb1bf; text-decoration: none; font-size: 14px; transition: color 0.3s ease; }
+        .footer-link:hover { color: #b3d7e8; }
+        .hidden-control { display: none; }
+        .lang-switcher { position: fixed; top: 20px; left: 20px; z-index: 1000; }
+        .lang-switcher button { color: #8fb1bf; text-decoration: none; font-size: 14px; background-color: rgba(20, 20, 20, 0.5); padding: 8px 12px; border-radius: 8px; transition: all 0.3s ease; border: 1px solid rgba(255, 215, 0, 0.2); cursor: pointer;}
+        .lang-switcher button:hover { background-color: rgba(40, 40, 40, 0.8); color: #fff; }
         @media (max-width: 1200px) { .main-container { flex-direction: column; } .synthesizer { min-width: unset; } }
     </style>
 </head>
 <body>
+    <div class="lang-switcher">
+        <button id="lang-toggle-btn">English</button>
+    </div>
     <div class="main-container">
         <div class="synthesizer">
-            <h1>♬音頻合成器</h1>
+            <h1 data-i18n-key="mainTitle">♬ Audio Synthesizer</h1>
             <div class="controls">
                 <div class="control-group">
-                    <h3>振盪器</h3>
+                    <h3 data-i18n-key="oscillatorTitle">Oscillator</h3>
                     <div class="control">
-                        <label for="waveform">波形類型</label>
+                        <label for="waveform" data-i18n-key="waveformLabel">Waveform Type</label>
                         <select id="waveform">
-                            <option value="sine">正弦波</option>
-                            <option value="square">方波</option>
-                            <option value="sawtooth">鋸齒波</option>
-                            <option value="triangle">三角波</option>
+                            <option value="sine" data-i18n-key="waveSine">正弦波 (Sine)</option>
+                            <option value="square" data-i18n-key="waveSquare">方波 (Square)</option>
+                            <option value="sawtooth" data-i18n-key="waveSawtooth">鋸齒波 (Sawtooth)</option>
+                            <option value="triangle" data-i18n-key="waveTriangle">三角波 (Triangle)</option>
+                            <option value="pulse" data-i18n-key="wavePulse">脈衝波 (Pulse)</option>
+                            <option value="noise" data-i18n-key="waveNoise">噪音 (Noise)</option>
+                            <option value="fm" data-i18n-key="waveFM">FM 合成</option>
                         </select>
                     </div>
                     <div class="control">
-                        <label for="volume">音量</label>
+                        <label for="volume" data-i18n-key="volumeLabel">Volume</label>
                         <input type="range" id="volume" min="0" max="1" step="0.01" value="0.3">
                         <div class="value-display" id="volumeValue">30%</div>
+                    </div>
+                    <div id="pulse-width-control" class="control hidden-control">
+                        <label for="pulseWidth" data-i18n-key="pulseWidthLabel">Pulse Width</label>
+                        <input type="range" id="pulseWidth" min="0.01" max="0.99" step="0.01" value="0.5">
+                        <div class="value-display" id="pulseWidthValue">50%</div>
+                    </div>
+                    <div id="fm-depth-control" class="control hidden-control">
+                        <label for="fmDepth" data-i18n-key="fmDepthLabel">FM Depth</label>
+                        <input type="range" id="fmDepth" min="0" max="1000" step="1" value="100">
+                        <div class="value-display" id="fmDepthValue">100</div>
                     </div>
                 </div>
 
                 <div class="control-group">
-                    <h3>濾波器</h3>
+                    <h3 data-i18n-key="filterTitle">Filter</h3>
                     <div class="control">
-                        <label for="filterFreq">截止頻率</label>
+                        <label for="filterFreq" data-i18n-key="filterFreqLabel">Cutoff Frequency</label>
                         <input type="range" id="filterFreq" min="100" max="10000" step="10" value="1000">
                         <div class="value-display" id="filterFreqValue">1000 Hz</div>
                     </div>
                     <div class="control">
-                        <label for="filterQ">共振 (Q值)</label>
+                        <label for="filterQ" data-i18n-key="filterQLabel">Resonance (Q)</label>
                         <input type="range" id="filterQ" min="0.1" max="30" step="0.1" value="1">
                         <div class="value-display" id="filterQValue">1.0</div>
                     </div>
                 </div>
 
                 <div class="control-group">
-                    <h3>包絡 (ADSR)</h3>
+                    <h3 data-i18n-key="envelopeTitle">Envelope</h3>
                     <div class="control">
-                        <label for="attack">起音時間</label>
+                        <label for="attack" data-i18n-key="attackLabel">Attack Time</label>
                         <input type="range" id="attack" min="0" max="2" step="0.01" value="0.1">
                         <div class="value-display" id="attackValue">0.10s</div>
                     </div>
                     <div class="control">
-                        <label for="release">釋音時間</label>
+                        <label for="release" data-i18n-key="releaseLabel">Release Time</label>
                         <input type="range" id="release" min="0" max="3" step="0.01" value="0.5">
                         <div class="value-display" id="releaseValue">0.50s</div>
                     </div>
                 </div>
             </div>
             <div class="keyboard">
-                <!-- Octave 3 -->
+                <!-- FIX: Added back the keyboard HTML -->
                 <div class="key" data-note="C3">C3</div><div class="key black-key" data-note="C#3">C#3</div><div class="key" data-note="D3">D3</div><div class="key black-key" data-note="D#3">D#3</div><div class="key" data-note="E3">E3</div><div class="key" data-note="F3">F3</div><div class="key black-key" data-note="F#3">F#3</div><div class="key" data-note="G3">G3</div><div class="key black-key" data-note="G#3">G#3</div><div class="key" data-note="A3">A3</div><div class="key black-key" data-note="A#3">A#3</div><div class="key" data-note="B3">B3</div>
-                <!-- Octave 4 -->
                 <div class="key" data-note="C4">C4</div><div class="key black-key" data-note="C#4">C#4</div><div class="key" data-note="D4">D4</div><div class="key black-key" data-note="D#4">D#4</div><div class="key" data-note="E4">E4</div><div class="key" data-note="F4">F4</div><div class="key black-key" data-note="F#4">F#4</div><div class="key" data-note="G4">G4</div><div class="key black-key" data-note="G#4">G#4</div><div class="key" data-note="A4">A4</div><div class="key black-key" data-note="A#4">A#4</div><div class="key" data-note="B4">B4</div>
-                <!-- Octave 5 -->
                 <div class="key" data-note="C5">C5</div><div class="key black-key" data-note="C#5">C#5</div><div class="key" data-note="D5">D5</div><div class="key black-key" data-note="D#5">D#5</div><div class="key" data-note="E5">E5</div><div class="key" data-note="F5">F5</div><div class="key black-key" data-note="F#5">F#5</div><div class="key" data-note="G5">G5</div><div class="key black-key" data-note="G#5">G#5</div><div class="key" data-note="A5">A5</div><div class="key black-key" data-note="A#5">A#5</div><div class="key" data-note="B5">B5</div>
             </div>
         </div>
         <div class="sequencer-panel">
-             <h2>程式碼音序器</h2>
+             <h2 data-i18n-key="sequencerTitle">Code Sequencer</h2>
              <div class="sequencer-editor">
                  <pre id="sequencerHighlight"><span class="highlight-bar"></span></pre>
-                 <textarea id="sequencerCode" spellcheck="false" placeholder="語法: 音名 時長(毫秒)&#10;--- 代表休止符&#10;| 分隔同時播放的音符&#10;&#10;範例 (和弦):&#10;C4 500 | E4 500 | G4 500&#10;--- 250&#10;F3 500 | A3 500 | C4 500"></textarea>
+                 <textarea id="sequencerCode" spellcheck="false"></textarea>
              </div>
              <div class="sequencer-buttons">
-                 <button id="playSequenceBtn">播放</button>
-                 <button id="stopSequenceBtn">停止</button>
-                 <button id="exportMp3Btn">匯出 MP3</button>
+                 <button id="playSequenceBtn" data-i18n-key="playBtn">Play</button>
+                 <button id="stopSequenceBtn" data-i18n-key="stopBtn">Stop</button>
+                 <button id="exportMp3Btn" data-i18n-key="exportBtn">Export MP3</button>
              </div>
         </div>
     </div>
 
-     <a
-        href="https://www.instagram.com/tangledkai_2.0/"
-        target="_blank" 
-        rel="noopener noreferrer" 
-        class="footer-link">
-        tangledkai_2.0 製作
-    </a>
+     <a href="https://www.instagram.com/tangledkai_2.0/" target="_blank" rel="noopener noreferrer" class="footer-link" data-i18n-key="authorLink">tangledkai_2.0 製作</a>
 
     <script>
+        const translations = {
+            'zh-TW': {
+                mainTitle: '♬ 音頻合成器',
+                sequencerTitle: '程式碼音序器',
+                oscillatorTitle: '振盪器',
+                waveformLabel: '波形類型',
+                waveSine: '正弦波 (Sine)',
+                waveSquare: '方波 (Square)',
+                waveSawtooth: '鋸齒波 (Sawtooth)',
+                waveTriangle: '三角波 (Triangle)',
+                wavePulse: '脈衝波 (Pulse)',
+                waveNoise: '噪音 (Noise)',
+                waveFM: 'FM 合成',
+                volumeLabel: '音量',
+                pulseWidthLabel: '脈衝寬度',
+                fmDepthLabel: 'FM 深度',
+                filterTitle: '濾波器',
+                filterFreqLabel: '截止頻率',
+                filterQLabel: '共振 (Q值)',
+                envelopeTitle: '包絡',
+                attackLabel: '起音時間',
+                releaseLabel: '釋音時間',
+                playBtn: '播放',
+                stopBtn: '停止',
+                exportBtn: '匯出 MP3',
+                exportRendering: '渲染中...',
+                exportEncoding: 'MP3編碼中...',
+                authorLink: 'tangledkai_2.0 製作',
+                sequencerPlaceholder: '語法: 音名 時長(毫秒)\n--- 代表休止符\n| 分隔同時播放的音符\n\n範例 (和弦):\nC4 500 | E4 500 | G4 500\n--- 250\nF3 500 | A3 500 | C4 500',
+                langToggle: 'English'
+            },
+            'en': {
+                mainTitle: '♬ Audio Synthesizer',
+                sequencerTitle: 'Code Sequencer',
+                oscillatorTitle: 'Oscillator',
+                waveformLabel: 'Waveform Type',
+                waveSine: 'Sine',
+                waveSquare: 'Square',
+                waveSawtooth: 'Sawtooth',
+                waveTriangle: 'Triangle',
+                wavePulse: 'Pulse',
+                waveNoise: 'Noise',
+                waveFM: 'FM Synthesis',
+                volumeLabel: 'Volume',
+                pulseWidthLabel: 'Pulse Width',
+                fmDepthLabel: 'FM Depth',
+                filterTitle: 'Filter',
+                filterFreqLabel: 'Cutoff Frequency',
+                filterQLabel: 'Resonance (Q)',
+                envelopeTitle: 'Envelope',
+                attackLabel: 'Attack Time',
+                releaseLabel: 'Release Time',
+                playBtn: 'Play',
+                stopBtn: 'Stop',
+                exportBtn: 'Export MP3',
+                exportRendering: 'Rendering...',
+                exportEncoding: 'Encoding MP3...',
+                authorLink: 'Made by tangledkai_2.0',
+                sequencerPlaceholder: 'Syntax: Note Duration(ms)\n--- for rests\n| to play notes simultaneously\n\nExample (Chord):\nC4 500 | E4 500 | G4 500\n--- 250\nF3 500 | A3 500 | C4 500',
+                langToggle: '正體中文'
+            }
+        };
+
         class SimpleSynthesizer {
             constructor() {
+                // FIX: Added back all the necessary property initializations
                 this.audioContext = null;
                 this.liveAudioContext = null;
-                this.masterGain = null;
-                this.filter = null;
                 this.activeOscillators = new Map();
-
                 this.isPlayingSequence = false;
                 this.isExporting = false;
                 this.sequenceTimeouts = [];
-                
+                this.whiteNoiseBuffer = null;
+                this.currentLanguage = 'zh-TW';
+
                 this.settings = {
                     waveform: 'sine',
                     volume: 0.3,
                     filterFreq: 1000,
                     filterQ: 1,
                     attack: 0.1,
-                    release: 0.5
+                    release: 0.5,
+                    pulseWidth: 0.5,
+                    fmDepth: 100,
                 };
                 
-                this.noteFrequencies = {
-                    'C3': 130.81, 'C#3': 138.59, 'D3': 146.83, 'D#3': 155.56, 'E3': 164.81, 'F3': 174.61, 'F#3': 185.00, 'G3': 196.00, 'G#3': 207.65, 'A3': 220.00, 'A#3': 233.08, 'B3': 246.94,
-                    'C4': 261.63, 'C#4': 277.18, 'D4': 293.66, 'D#4': 311.13, 'E4': 329.63, 'F4': 349.23, 'F#4': 369.99, 'G4': 392.00, 'G#4': 415.30, 'A4': 440.00, 'A#4': 466.16, 'B4': 493.88,
-                    'C5': 523.25, 'C#5': 554.37, 'D5': 587.33, 'D#5': 622.25, 'E5': 659.25, 'F5': 698.46, 'F#5': 739.99, 'G5': 783.99, 'G#5': 830.61, 'A5': 880.00, 'A#5': 932.33, 'B5': 987.77
-                };
+                this.noteFrequencies = { 'C3': 130.81, 'C#3': 138.59, 'D3': 146.83, 'D#3': 155.56, 'E3': 164.81, 'F3': 174.61, 'F#3': 185.00, 'G3': 196.00, 'G#3': 207.65, 'A3': 220.00, 'A#3': 233.08, 'B3': 246.94,'C4': 261.63, 'C#4': 277.18, 'D4': 293.66, 'D#4': 311.13, 'E4': 329.63, 'F4': 349.23, 'F#4': 369.99, 'G4': 392.00, 'G#4': 415.30, 'A4': 440.00, 'A#4': 466.16, 'B4': 493.88,'C5': 523.25, 'C#5': 554.37, 'D5': 587.33, 'D#5': 622.25, 'E5': 659.25, 'F5': 698.46, 'F#5': 739.99, 'G5': 783.99, 'G#5': 830.61, 'A5': 880.00, 'A#5': 932.33, 'B5': 987.77 };
                 
                 this.initDomElements();
                 this.initAudio();
                 this.setupEventListeners();
-                this.updateDisplayValues();
+                this.setLanguage(this.currentLanguage);
             }
-
+            
             initDomElements() {
+                this.langToggleBtn = document.getElementById('lang-toggle-btn');
+                this.pulseWidthControl = document.getElementById('pulse-width-control');
+                this.fmDepthControl = document.getElementById('fm-depth-control');
                 this.sequencerCodeEl = document.getElementById('sequencerCode');
                 this.sequencerHighlightEl = document.getElementById('sequencerHighlight');
                 this.highlightBarEl = this.sequencerHighlightEl.querySelector('.highlight-bar');
@@ -211,279 +268,65 @@
                 this.exportBtn = document.getElementById('exportMp3Btn');
             }
 
-            initAudio() {
-                try {
-                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                } catch (e) { console.error('Web Audio API is not supported in this browser'); }
+            setLanguage(lang) {
+                this.currentLanguage = lang;
+                const langDict = translations[lang];
+
+                document.querySelectorAll('[data-i18n-key]').forEach(element => {
+                    const key = element.getAttribute('data-i18n-key');
+                    if (langDict[key]) {
+                        element.textContent = langDict[key];
+                    }
+                });
+
+                this.sequencerCodeEl.placeholder = langDict.sequencerPlaceholder;
+                this.langToggleBtn.textContent = langDict.langToggle;
+                this.updateDisplayValues();
             }
             
             setupEventListeners() {
-                this.playBtn.addEventListener('click', () => this.playSequence());
+                this.langToggleBtn.addEventListener('click', () => {
+                    const newLang = this.currentLanguage === 'zh-TW' ? 'en' : 'zh-TW';
+                    this.setLanguage(newLang);
+                });
+
+                 this.playBtn.addEventListener('click', () => this.playSequence());
                 this.stopBtn.addEventListener('click', () => this.stopSequence());
                 this.exportBtn.addEventListener('click', () => this.exportToMp3());
 
-                document.getElementById('waveform').addEventListener('change', (e) => this.settings.waveform = e.target.value);
+                document.getElementById('waveform').addEventListener('change', (e) => {
+                    this.settings.waveform = e.target.value;
+                    this.toggleCustomControls();
+                });
                 
                 const sliders = {
                     volume: (val) => { this.settings.volume = val; },
                     filterFreq: (val) => { this.settings.filterFreq = val; },
                     filterQ: (val) => { this.settings.filterQ = val; },
                     attack: (val) => { this.settings.attack = val; },
-                    release: (val) => { this.settings.release = val; }
+                    release: (val) => { this.settings.release = val; },
+                    pulseWidth: (val) => { this.settings.pulseWidth = val; },
+                    fmDepth: (val) => { this.settings.fmDepth = val; }
                 };
 
                 for (const [id, setter] of Object.entries(sliders)) {
-                    document.getElementById(id).addEventListener('input', (e) => {
+                    document.getElementById(id)?.addEventListener('input', (e) => {
                         setter(parseFloat(e.target.value));
                         this.updateDisplayValues();
                     });
                 }
-
-                document.querySelectorAll('.key').forEach(key => {
-                    const note = key.dataset.note;
-                    const stopHandler = () => { this.stopNote(note); key.classList.remove('active'); };
-                    key.addEventListener('mousedown', (e) => { e.preventDefault(); this.playNote(note); key.classList.add('active'); });
-                    key.addEventListener('mouseup', stopHandler);
-                    key.addEventListener('mouseleave', () => { if (this.activeOscillators.has(note)) stopHandler(); });
-                });
-
-                 const keyMap = {
-                    'z': 'C3', 's': 'C#3', 'x': 'D3', 'd': 'D#3', 'c': 'E3', 'v': 'F3', 'g': 'F#3', 'b': 'G3', 'h': 'G#3', 'n': 'A3', 'j': 'A#3', 'm': 'B3',
-                    'q': 'C4', '2': 'C#4', 'w': 'D4', '3': 'D#4', 'e': 'E4', 'r': 'F4', '5': 'F#4', 't': 'G4', '6': 'G#4', 'y': 'A4', '7': 'A#4', 'u': 'B4',
-                    'i': 'C5', '9': 'C#5', 'o': 'D5', '0': 'D#5', 'p': 'E5', '[': 'F5', '=': 'F#5', ']': 'G5', '\\': 'G#5'
-                };
-                
-                document.addEventListener('keydown', (e) => {
-                    if (e.target === this.sequencerCodeEl) return; 
-                    const note = keyMap[e.key.toLowerCase()];
-                    if (note && !e.repeat && !this.activeOscillators.has(note)) {
-                        this.playNote(note);
-                        const keyEl = document.querySelector(`[data-note="${note}"]`);
-                        if(keyEl) keyEl.classList.add('active');
-                    }
-                });
-                document.addEventListener('keyup', (e) => {
-                    if (e.target === this.sequencerCodeEl) return;
-                    const note = keyMap[e.key.toLowerCase()];
-                    if (note) {
-                        this.stopNote(note);
-                        const keyEl = document.querySelector(`[data-note="${note}"]`);
-                        if(keyEl) keyEl.classList.remove('active');
-                    }
-                });
-
-                this.sequencerCodeEl.addEventListener('scroll', () => {
-                    this.sequencerHighlightEl.scrollTop = this.sequencerCodeEl.scrollTop;
-                    this.sequencerHighlightEl.scrollLeft = this.sequencerCodeEl.scrollLeft;
-                });
-                this.sequencerCodeEl.addEventListener('input', () => {
-                   this.syncHighlighterContent();
-                });
-            }
-            
-            syncHighlighterContent() {
-                this.sequencerHighlightEl.textContent = this.sequencerCodeEl.value;
-                this.highlightBarEl = document.createElement('span');
-                this.highlightBarEl.className = 'highlight-bar';
-                this.sequencerHighlightEl.appendChild(this.highlightBarEl);
-                this.highlightBarEl.style.display = 'none';
-            }
-            
-            updateDisplayValues() {
-                document.getElementById('volumeValue').textContent = `${Math.round(this.settings.volume * 100)}%`;
-                document.getElementById('filterFreqValue').textContent = `${this.settings.filterFreq} Hz`;
-                document.getElementById('filterQValue').textContent = this.settings.filterQ.toFixed(1);
-                document.getElementById('attackValue').textContent = `${this.settings.attack.toFixed(2)}s`;
-                document.getElementById('releaseValue').textContent = `${this.settings.release.toFixed(2)}s`;
-            }
-
-            playNote(note) {
-                if (!this.audioContext || this.activeOscillators.has(note)) return;
-                if(this.audioContext.state === 'suspended') this.audioContext.resume();
-                
-                const frequency = this.noteFrequencies[note];
-                if (!frequency) return;
-
-                const oscillator = this.audioContext.createOscillator();
-                const gainNode = this.audioContext.createGain();
-                const filter = this.audioContext.createBiquadFilter();
-                const now = this.audioContext.currentTime;
-
-                filter.type = 'lowpass';
-                filter.frequency.value = this.settings.filterFreq;
-                filter.Q.value = this.settings.filterQ;
-                
-                oscillator.type = this.settings.waveform;
-                oscillator.frequency.value = frequency;
-
-                gainNode.gain.cancelScheduledValues(now);
-                gainNode.gain.setValueAtTime(0, now);
-                gainNode.gain.linearRampToValueAtTime(this.settings.volume, now + this.settings.attack);
-                
-                oscillator.connect(filter).connect(gainNode).connect(this.audioContext.destination);
-                oscillator.start();
-                this.activeOscillators.set(note, { oscillator, gainNode, filter });
-            }
-
-            stopNote(note) {
-                const nodeData = this.activeOscillators.get(note);
-                if (!nodeData) return;
-                const { oscillator, gainNode } = nodeData;
-                const now = this.audioContext.currentTime;
-                
-                gainNode.gain.cancelScheduledValues(now);
-                gainNode.gain.setValueAtTime(gainNode.gain.value, now);
-                gainNode.gain.linearRampToValueAtTime(0, now + this.settings.release);
-                oscillator.stop(now + this.settings.release + 0.1);
-
-                this.activeOscillators.delete(note);
-            }
-
-            createNoteNode(audioCtx, note, startTime, durationSec) {
-                const frequency = this.noteFrequencies[note];
-                if (!frequency) return;
-
-                const oscillator = audioCtx.createOscillator();
-                const gainNode = audioCtx.createGain();
-                const filter = audioCtx.createBiquadFilter();
-
-                filter.type = 'lowpass';
-                filter.frequency.setValueAtTime(this.settings.filterFreq, startTime);
-                filter.Q.setValueAtTime(this.settings.filterQ, startTime);
-
-                oscillator.type = this.settings.waveform;
-                oscillator.frequency.setValueAtTime(frequency, startTime);
-                
-                gainNode.gain.setValueAtTime(0, startTime);
-                gainNode.gain.linearRampToValueAtTime(this.settings.volume, startTime + this.settings.attack);
-                gainNode.gain.linearRampToValueAtTime(0, startTime + durationSec + this.settings.release);
-                
-                oscillator.connect(filter).connect(gainNode).connect(audioCtx.destination);
-                oscillator.start(startTime);
-                oscillator.stop(startTime + durationSec + this.settings.release + 0.1);
-            }
-
-            scheduleSequence(audioCtx, onStep, onNote) {
-                const code = this.sequencerCodeEl.value;
-                const lines = code.split('\n');
-                let cumulativeTime = 0;
-
-                lines.forEach((line, index) => {
-                    const commands = line.split('|').map(cmd => cmd.trim());
-                    let maxDurationMsOnLine = 0;
-                    
-                    if (line.trim() === '') {
-                        maxDurationMsOnLine = 250;
-                    } else {
-                        if (onStep) onStep(index, cumulativeTime);
-
-                        commands.forEach(command => {
-                            const parts = command.split(/\s+/);
-                            if (parts.length < 2) return;
-                            const note = parts[0].toUpperCase();
-                            const durationMs = parseInt(parts[1], 10);
-                            
-                            if (!isNaN(durationMs) && durationMs > 0) {
-                                if (durationMs > maxDurationMsOnLine) maxDurationMsOnLine = durationMs;
-                                
-                                this.createNoteNode(audioCtx, note, cumulativeTime / 1000, durationMs / 1000);
-                                
-                                if (onNote) onNote(note, cumulativeTime, durationMs);
-                            }
-                        });
-                    }
-                     if (maxDurationMsOnLine === 0 && line.trim() !== '') maxDurationMsOnLine = 100;
-                    cumulativeTime += maxDurationMsOnLine;
-                });
-                return cumulativeTime;
-            }
-            
-            calculateSequenceDuration() {
-                const code = this.sequencerCodeEl.value;
-                const lines = code.split('\n');
-                let cumulativeTime = 0;
-
-                lines.forEach((line) => {
-                    const commands = line.split('|').map(cmd => cmd.trim());
-                    let maxDurationMsOnLine = 0;
-                    
-                    if (line.trim() === '') {
-                        maxDurationMsOnLine = 250;
-                    } else {
-                        commands.forEach(command => {
-                            const parts = command.split(/\s+/);
-                            if (parts.length >= 2) {
-                                const durationMs = parseInt(parts[1], 10);
-                                if (!isNaN(durationMs) && durationMs > 0 && durationMs > maxDurationMsOnLine) {
-                                    maxDurationMsOnLine = durationMs;
-                                }
-                            }
-                        });
-                    }
-                    if (maxDurationMsOnLine === 0 && line.trim() !== '') maxDurationMsOnLine = 100;
-                    cumulativeTime += maxDurationMsOnLine;
-                });
-                return cumulativeTime;
-            }
-
-            playSequence() {
-                if (this.isPlayingSequence || this.isExporting) return;
-                this.stopSequence();
-                this.liveAudioContext = new (window.AudioContext || window.webkitAudioContext)();
-                if(this.liveAudioContext.state === 'suspended') this.liveAudioContext.resume();
-                
-                this.isPlayingSequence = true;
-                this.playBtn.disabled = true;
-                this.exportBtn.disabled = true;
-                this.syncHighlighterContent();
-                
-                const onStepCallback = (index, time) => {
-                    this.sequenceTimeouts.push(setTimeout(() => {
-                        if (!this.isPlayingSequence) return;
-                        this.updateHighlight(index);
-                    }, time));
-                };
-
-                const onNoteCallback = (note, time, duration) => {
-                    const keyEl = document.querySelector(`[data-note="${note}"]`);
-                    if (!keyEl) return;
-                    
-                    this.sequenceTimeouts.push(setTimeout(() => {
-                        if (!this.isPlayingSequence) return;
-                        keyEl.classList.add('active');
-                    }, time));
-
-                    this.sequenceTimeouts.push(setTimeout(() => {
-                        if (!this.isPlayingSequence) return;
-                        keyEl.classList.remove('active');
-                    }, time + duration));
-                };
-                
-                const totalDuration = this.scheduleSequence(this.liveAudioContext, onStepCallback, onNoteCallback);
-                
-                this.sequenceTimeouts.push(setTimeout(() => {
-                    this.stopSequence();
-                }, totalDuration));
-            }
-
-            stopSequence() {
-                if (this.liveAudioContext) {
-                    this.liveAudioContext.close().catch(e => {});
-                    this.liveAudioContext = null;
-                }
-                this.sequenceTimeouts.forEach(clearTimeout);
-                this.sequenceTimeouts = [];
-                if (this.highlightBarEl) this.highlightBarEl.style.display = 'none';
-                this.isPlayingSequence = false;
-                this.playBtn.disabled = false;
-                this.exportBtn.disabled = false;
-                document.querySelectorAll('.key.active').forEach(key => key.classList.remove('active'));
+                 document.querySelectorAll('.key').forEach(key => { const note = key.dataset.note; const stopHandler = () => { this.stopNote(note); key.classList.remove('active'); }; key.addEventListener('mousedown', (e) => { e.preventDefault(); this.playNote(note); key.classList.add('active'); }); key.addEventListener('mouseup', stopHandler); key.addEventListener('mouseleave', () => { if (this.activeOscillators.has(note)) stopHandler(); }); });
+                const keyMap = { 'z': 'C3', 's': 'C#3', 'x': 'D3', 'd': 'D#3', 'c': 'E3', 'v': 'F3', 'g': 'F#3', 'b': 'G3', 'h': 'G#3', 'n': 'A3', 'j': 'A#3', 'm': 'B3', 'q': 'C4', '2': 'C#4', 'w': 'D4', '3': 'D#4', 'e': 'E4', 'r': 'F4', '5': 'F#4', 't': 'G4', '6': 'G#4', 'y': 'A4', '7': 'A#4', 'u': 'B4', 'i': 'C5', '9': 'C#5', 'o': 'D5', '0': 'D#5', 'p': 'E5', '[': 'F5', '=': 'F#5', ']': 'G5', '\\': 'G#5' };
+                document.addEventListener('keydown', (e) => { if (e.target === this.sequencerCodeEl) return; const note = keyMap[e.key.toLowerCase()]; if (note && !e.repeat && !this.activeOscillators.has(note)) { this.playNote(note); const keyEl = document.querySelector(`[data-note="${note}"]`); if(keyEl) keyEl.classList.add('active'); } });
+                document.addEventListener('keyup', (e) => { if (e.target === this.sequencerCodeEl) return; const note = keyMap[e.key.toLowerCase()]; if (note) { this.stopNote(note); const keyEl = document.querySelector(`[data-note="${note}"]`); if(keyEl) keyEl.classList.remove('active'); } });
+                this.sequencerCodeEl.addEventListener('scroll', () => { this.sequencerHighlightEl.scrollTop = this.sequencerCodeEl.scrollTop; this.sequencerHighlightEl.scrollLeft = this.sequencerCodeEl.scrollLeft; });
+                this.sequencerCodeEl.addEventListener('input', () => { this.syncHighlighterContent(); });
             }
 
             async exportToMp3() {
                 if (this.isExporting || this.isPlayingSequence) return;
                 this.isExporting = true;
-                this.exportBtn.textContent = '渲染中...';
+                this.exportBtn.textContent = translations[this.currentLanguage].exportRendering;
                 this.playBtn.disabled = true;
                 this.exportBtn.disabled = true;
 
@@ -493,19 +336,14 @@
                         alert("沒有可匯出的音樂內容。");
                         throw new Error("No content to export");
                     }
-
                     const sampleRate = 44100;
                     const offlineCtx = new OfflineAudioContext(1, sampleRate * (totalDurationMs / 1000), sampleRate);
                     this.scheduleSequence(offlineCtx, null, null);
-
                     const renderedBuffer = await offlineCtx.startRendering();
-                    
-                    this.exportBtn.textContent = 'MP3編碼中...';
-
+                    this.exportBtn.textContent = translations[this.currentLanguage].exportEncoding;
                     const mp3Data = this.encodeBufferToMp3(renderedBuffer);
                     const blob = new Blob(mp3Data, { type: 'audio/mp3' });
                     const url = URL.createObjectURL(blob);
-
                     const a = document.createElement('a');
                     a.href = url;
                     a.download = `music-export-${Date.now()}.mp3`;
@@ -513,57 +351,35 @@
                     a.click();
                     document.body.removeChild(a);
                     URL.revokeObjectURL(url);
-
                 } catch (e) {
                     console.error("匯出失敗:", e);
                     if (e.message !== "No content to export") {
-                        alert("匯出MP3時發生錯誤。");
+                         alert("匯出MP3時發生錯誤。");
                     }
                 } finally {
                     this.isExporting = false;
-                    this.exportBtn.textContent = '匯出 MP3';
+                    this.exportBtn.textContent = translations[this.currentLanguage].exportBtn;
                     this.playBtn.disabled = false;
                     this.exportBtn.disabled = false;
                 }
             }
             
-            encodeBufferToMp3(audioBuffer) {
-                const sampleRate = audioBuffer.sampleRate;
-                const mp3encoder = new lamejs.Mp3Encoder(1, sampleRate, 128); 
-                const samples = audioBuffer.getChannelData(0); 
-                const sampleBlockSize = 1152; 
-                const mp3Data = [];
-
-                for (let i = 0; i < samples.length; i += sampleBlockSize) {
-                    const sampleChunk = samples.subarray(i, i + sampleBlockSize);
-                    const int16Chunk = new Int16Array(sampleChunk.length);
-                    for(let j=0; j<sampleChunk.length; j++){
-                        int16Chunk[j] = sampleChunk[j] * 32767;
-                    }
-                    const mp3buf = mp3encoder.encodeBuffer(int16Chunk);
-                    if (mp3buf.length > 0) {
-                        mp3Data.push(mp3buf);
-                    }
-                }
-                const end = mp3encoder.flush();
-                if (end.length > 0) {
-                    mp3Data.push(end);
-                }
-                return mp3Data;
-            }
-            
-            updateHighlight(lineNumber) {
-                const lineHeight = parseFloat(getComputedStyle(this.sequencerCodeEl).lineHeight);
-                this.highlightBarEl.style.height = `${lineHeight}px`;
-                this.highlightBarEl.style.top = `${lineNumber * lineHeight}px`;
-                this.highlightBarEl.style.display = 'block';
-                const containerHeight = this.sequencerCodeEl.clientHeight;
-                const scrollPos = this.sequencerCodeEl.scrollTop;
-                const highlightPos = lineNumber * lineHeight;
-                if (highlightPos < scrollPos || highlightPos >= scrollPos + containerHeight) {
-                    this.sequencerCodeEl.scrollTop = highlightPos - containerHeight / 2 + lineHeight / 2;
-                }
-            }
+            initAudio() { try { this.audioContext = new (window.AudioContext || window.webkitAudioContext)(); this.createWhiteNoiseBuffer(); } catch (e) { console.error('Web Audio API is not supported in this browser'); } }
+            createWhiteNoiseBuffer() { if (!this.audioContext) return; const bufferSize = 2 * this.audioContext.sampleRate; this.whiteNoiseBuffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate); const output = this.whiteNoiseBuffer.getChannelData(0); for (let i = 0; i < bufferSize; i++) { output[i] = Math.random() * 2 - 1; } }
+            toggleCustomControls() { this.pulseWidthControl.classList.toggle('hidden-control', this.settings.waveform !== 'pulse'); this.fmDepthControl.classList.toggle('hidden-control', this.settings.waveform !== 'fm'); }
+            syncHighlighterContent() { this.sequencerHighlightEl.textContent = this.sequencerCodeEl.value; this.highlightBarEl = document.createElement('span'); this.highlightBarEl.className = 'highlight-bar'; this.sequencerHighlightEl.appendChild(this.highlightBarEl); this.highlightBarEl.style.display = 'none'; }
+            updateDisplayValues() { document.getElementById('volumeValue').textContent = `${Math.round(this.settings.volume * 100)}%`; document.getElementById('filterFreqValue').textContent = `${this.settings.filterFreq} Hz`; document.getElementById('filterQValue').textContent = this.settings.filterQ.toFixed(1); document.getElementById('attackValue').textContent = `${this.settings.attack.toFixed(2)}s`; document.getElementById('releaseValue').textContent = `${this.settings.release.toFixed(2)}s`; if (this.settings.waveform === 'pulse') { document.getElementById('pulseWidthValue').textContent = `${Math.round(this.settings.pulseWidth * 100)}%`; } if (this.settings.waveform === 'fm') { document.getElementById('fmDepthValue').textContent = this.settings.fmDepth.toFixed(0); } }
+            playNote(note) { if (!this.audioContext || this.activeOscillators.has(note)) return; if (this.audioContext.state === 'suspended') this.audioContext.resume(); const frequency = this.noteFrequencies[note]; if (!frequency && this.settings.waveform !== 'noise') return; const { mainSource, modulator } = this.createMainSourceNode(this.audioContext, frequency); const gainNode = this.audioContext.createGain(); const filter = this.audioContext.createBiquadFilter(); const now = this.audioContext.currentTime; filter.type = 'lowpass'; filter.frequency.value = this.settings.filterFreq; filter.Q.value = this.settings.filterQ; gainNode.gain.cancelScheduledValues(now); gainNode.gain.setValueAtTime(0, now); gainNode.gain.linearRampToValueAtTime(this.settings.volume, now + this.settings.attack); mainSource.connect(filter).connect(gainNode).connect(this.audioContext.destination); mainSource.start(); if (modulator) modulator.start(); this.activeOscillators.set(note, { mainSource, gainNode, modulator }); }
+            stopNote(note) { const nodeData = this.activeOscillators.get(note); if (!nodeData) return; const { mainSource, gainNode, modulator } = nodeData; const now = this.audioContext.currentTime; gainNode.gain.cancelScheduledValues(now); gainNode.gain.setValueAtTime(gainNode.gain.value, now); gainNode.gain.linearRampToValueAtTime(0, now + this.settings.release); const stopTime = now + this.settings.release + 0.1; mainSource.stop(stopTime); if (modulator) modulator.stop(stopTime); this.activeOscillators.delete(note); }
+            createMainSourceNode(audioCtx, frequency) { let mainSource, modulator; switch (this.settings.waveform) { case 'pulse': mainSource = audioCtx.createOscillator(); const pulseWave = this.createPulseWave(audioCtx, this.settings.pulseWidth); mainSource.setPeriodicWave(pulseWave); mainSource.frequency.value = frequency; break; case 'noise': mainSource = audioCtx.createBufferSource(); mainSource.buffer = this.whiteNoiseBuffer; mainSource.loop = true; break; case 'fm': const carrier = audioCtx.createOscillator(); carrier.type = 'sine'; carrier.frequency.value = frequency; modulator = audioCtx.createOscillator(); modulator.type = 'sine'; modulator.frequency.value = frequency * 2; const fmDepthGain = audioCtx.createGain(); fmDepthGain.gain.value = this.settings.fmDepth; modulator.connect(fmDepthGain); fmDepthGain.connect(carrier.frequency); mainSource = carrier; break; default: mainSource = audioCtx.createOscillator(); mainSource.type = this.settings.waveform; mainSource.frequency.value = frequency; } return { mainSource, modulator }; }
+            createPulseWave(audioCtx, dutyCycle) { const K = 100; const real = new Float32Array(K); const imag = new Float32Array(K); for(let n = 1; n < K; n++){ const c = (1 / (n * Math.PI)) * Math.sin(n * Math.PI * dutyCycle); real[n] = c * 2 * Math.cos(n * Math.PI * dutyCycle); imag[n] = -c * 2 * Math.sin(n * Math.PI * dutyCycle); } return audioCtx.createPeriodicWave(real, imag, { disableNormalization: false }); }
+            createNoteNode(audioCtx, note, startTime, durationSec) { const frequency = this.noteFrequencies[note]; if (!frequency && this.settings.waveform !== 'noise') return; const { mainSource, modulator } = this.createMainSourceNode(audioCtx, frequency); const gainNode = audioCtx.createGain(); const filter = audioCtx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.setValueAtTime(this.settings.filterFreq, startTime); filter.Q.setValueAtTime(this.settings.filterQ, startTime); gainNode.gain.setValueAtTime(0, startTime); gainNode.gain.linearRampToValueAtTime(this.settings.volume, startTime + this.settings.attack); gainNode.gain.linearRampToValueAtTime(0, startTime + durationSec + this.settings.release); mainSource.connect(filter).connect(gainNode).connect(audioCtx.destination); const stopTime = startTime + durationSec + this.settings.release + 0.1; mainSource.start(startTime); mainSource.stop(stopTime); if (modulator) { modulator.start(startTime); modulator.stop(stopTime); } }
+            scheduleSequence(audioCtx, onStep, onNote) { const code = this.sequencerCodeEl.value; const lines = code.split('\n'); let cumulativeTime = 0; lines.forEach((line, index) => { const commands = line.split('|').map(cmd => cmd.trim()); let maxDurationMsOnLine = 0; if (line.trim() === '') { maxDurationMsOnLine = 250; } else { if (onStep) onStep(index, cumulativeTime); commands.forEach(command => { const parts = command.split(/\s+/); if (parts.length < 2) return; const note = parts[0].toUpperCase(); const durationMs = parseInt(parts[1], 10); if (!isNaN(durationMs) && durationMs > 0) { if (durationMs > maxDurationMsOnLine) maxDurationMsOnLine = durationMs; this.createNoteNode(audioCtx, note, cumulativeTime / 1000, durationMs / 1000); if (onNote) onNote(note, cumulativeTime, durationMs); } }); } if (maxDurationMsOnLine === 0 && line.trim() !== '') maxDurationMsOnLine = 100; cumulativeTime += maxDurationMsOnLine; }); return cumulativeTime; }
+            calculateSequenceDuration() { const code = this.sequencerCodeEl.value; const lines = code.split('\n'); let cumulativeTime = 0; lines.forEach((line) => { const commands = line.split('|').map(cmd => cmd.trim()); let maxDurationMsOnLine = 0; if (line.trim() === '') { maxDurationMsOnLine = 250; } else { commands.forEach(command => { const parts = command.split(/\s+/); if (parts.length >= 2) { const durationMs = parseInt(parts[1], 10); if (!isNaN(durationMs) && durationMs > 0 && durationMs > maxDurationMsOnLine) { maxDurationMsOnLine = durationMs; } } }); } if (maxDurationMsOnLine === 0 && line.trim() !== '') maxDurationMsOnLine = 100; cumulativeTime += maxDurationMsOnLine; }); return cumulativeTime; }
+            playSequence() { if (this.isPlayingSequence || this.isExporting) return; this.stopSequence(); this.liveAudioContext = new (window.AudioContext || window.webkitAudioContext)(); if(this.liveAudioContext.state === 'suspended') this.liveAudioContext.resume(); this.isPlayingSequence = true; this.playBtn.disabled = true; this.exportBtn.disabled = true; this.syncHighlighterContent(); const onStepCallback = (index, time) => { this.sequenceTimeouts.push(setTimeout(() => { if (!this.isPlayingSequence) return; this.updateHighlight(index); }, time)); }; const onNoteCallback = (note, time, duration) => { const keyEl = document.querySelector(`[data-note="${note}"]`); if (!keyEl) return; this.sequenceTimeouts.push(setTimeout(() => { if (!this.isPlayingSequence) return; keyEl.classList.add('active'); }, time)); this.sequenceTimeouts.push(setTimeout(() => { if (!this.isPlayingSequence) return; keyEl.classList.remove('active'); }, time + duration)); }; const totalDuration = this.scheduleSequence(this.liveAudioContext, onStepCallback, onNoteCallback); this.sequenceTimeouts.push(setTimeout(() => { this.stopSequence(); }, totalDuration)); }
+            stopSequence() { if (this.liveAudioContext) { this.liveAudioContext.close().catch(e => {}); this.liveAudioContext = null; } this.sequenceTimeouts.forEach(clearTimeout); this.sequenceTimeouts = []; if (this.highlightBarEl) this.highlightBarEl.style.display = 'none'; this.isPlayingSequence = false; this.playBtn.disabled = false; this.exportBtn.disabled = false; document.querySelectorAll('.key.active').forEach(key => key.classList.remove('active')); }
+            encodeBufferToMp3(audioBuffer) { const sampleRate = audioBuffer.sampleRate; const mp3encoder = new lamejs.Mp3Encoder(1, sampleRate, 128); const samples = audioBuffer.getChannelData(0); const sampleBlockSize = 1152; const mp3Data = []; for (let i = 0; i < samples.length; i += sampleBlockSize) { const sampleChunk = samples.subarray(i, i + sampleBlockSize); const int16Chunk = new Int16Array(sampleChunk.length); for(let j=0; j<sampleChunk.length; j++){ int16Chunk[j] = sampleChunk[j] * 32767; } const mp3buf = mp3encoder.encodeBuffer(int16Chunk); if (mp3buf.length > 0) { mp3Data.push(mp3buf); } } const end = mp3encoder.flush(); if (end.length > 0) { mp3Data.push(end); } return mp3Data; }
+            updateHighlight(lineNumber) { const lineHeight = parseFloat(getComputedStyle(this.sequencerCodeEl).lineHeight); this.highlightBarEl.style.height = `${lineHeight}px`; this.highlightBarEl.style.top = `${lineNumber * lineHeight}px`; this.highlightBarEl.style.display = 'block'; const containerHeight = this.sequencerCodeEl.clientHeight; const scrollPos = this.sequencerCodeEl.scrollTop; const highlightPos = lineNumber * lineHeight; if (highlightPos < scrollPos || highlightPos >= scrollPos + containerHeight) { this.sequencerCodeEl.scrollTop = highlightPos - containerHeight / 2 + lineHeight / 2; } }
         }
         
         window.addEventListener('load', () => new SimpleSynthesizer());
