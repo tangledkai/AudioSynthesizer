@@ -60,7 +60,11 @@ AudioSynthesizer這是一個簡易的網頁版音樂製作工具
 
 _____
 
-![Snipaste_2025-06-21_00-41-43](https://github.com/user-attachments/assets/8a6a85a9-2d88-498a-b3c2-965ddb2c3f5d)
+Interface in English
+![音頻合成器(EN)](https://github.com/user-attachments/assets/6557b054-7bee-4e19-b3ac-fa550a1371e3)
+
+中文版本
+![音頻合成器(CN)](https://github.com/user-attachments/assets/e4361d42-73c0-478d-9f9d-7ac61b5b025b)
 
 _____
 # Example
