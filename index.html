@@ -3,62 +3,98 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Audio Synthesizer</title>
+    <title>Audio Synthesizer - Pro Editor v2.9</title>
     <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Arial', sans-serif;
             background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 25%, #2d2d2d 50%, #1a1a1a 75%, #0a0a0a 100%);
-            min-height: 100vh;
+            height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             padding: 20px;
-            overflow-x: hidden;
+            overflow: hidden; /* Prevent body from scrolling */
         }
-        .main-container { display: flex; gap: 35px; width: 100%; max-width: 1600px; }
-        .synthesizer {
+        .main-container { display: flex; gap: 35px; width: 100%; max-width: 1600px; height: 90vh; /* Set a fixed height */ }
+        .synthesizer, .sequencer-panel {
             background: linear-gradient(145deg, #1a1a1a 0%, #0d0d0d 100%);
             border-radius: 25px; padding: 35px;
             box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 215, 0, 0.2);
-            flex: 3; min-width: 800px;
+            display: flex;
+            flex-direction: column;
         }
-        .sequencer-panel {
-            background: linear-gradient(145deg, #1a1a1a 0%, #0d0d0d 100%);
-            border-radius: 25px; padding: 35px;
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 215, 0, 0.2);
-            flex: 2; display: flex; flex-direction: column;
-        }
+        .synthesizer { flex: 3; min-width: 800px; }
+        .sequencer-panel { flex: 2; }
+
         h1, h2, h3 {
             background: linear-gradient(135deg, #ffd700 0%, #ffb700 100%);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+            -webkit-background-clip: text; 
+            -webkit-text-fill-color: transparent;
             text-align: center; font-weight: 700;
+            flex-shrink: 0;
         }
         h1 { font-size: 2.8em; margin-bottom: 35px; }
         h2 { font-size: 1.8em; margin-bottom: 20px; }
         h3 { font-size: 1.3em; margin-bottom: 20px; }
-        .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 25px; margin-bottom: 30px; }
+        .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 25px; margin-bottom: 30px; flex-shrink: 0; }
         .control-group { background: linear-gradient(145deg, #2a2a2a 0%, #1a1a1a 100%); padding: 25px; border-radius: 20px; border: 1px solid rgba(255, 215, 0, 0.15); }
         .control { margin-bottom: 15px; }
         .control label { display: block; color: rgba(255, 215, 0, 0.9); margin-bottom: 8px; font-size: 0.95em; }
-        input[type="range"] { width: 100%; -webkit-appearance: none; background: transparent; }
+        input[type="range"] { appearance: none; -webkit-appearance: none; width: 100%; background: transparent; }
         input[type="range"]::-webkit-slider-runnable-track { height: 8px; background: linear-gradient(90deg, #333, #1a1a1a); border-radius: 4px; border: 1px solid rgba(255, 215, 0, 0.2); }
         input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; margin-top: -9px; background: linear-gradient(135deg, #ffd700 0%, #ffb700 50%, #ffd700 100%); border-radius: 50%; cursor: pointer; border: 2px solid #1a1a1a; box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4); }
         select { width: 100%; padding: 12px 16px; background: linear-gradient(145deg, #2a2a2a, #1a1a1a); border: 2px solid rgba(255, 215, 0, 0.3); border-radius: 12px; color: #ffd700; }
-        .keyboard { display: flex; justify-content: center; margin-top: 20px; flex-wrap: wrap; gap: 2px; }
+        
+        .octave-selector { display: flex; justify-content: center; gap: 15px; margin-bottom: 25px; flex-shrink: 0; }
+        .octave-btn {
+            background: linear-gradient(145deg, #2a2a2a, #1a1a1a); border: 2px solid rgba(255, 215, 0, 0.3); color: rgba(255, 215, 0, 0.6);
+            padding: 10px 20px; border-radius: 12px; font-size: 1em; cursor: pointer; transition: all 0.2s ease;
+        }
+        .octave-btn.active { color: #1a1a1a; background: linear-gradient(135deg, #ffd700 0%, #ffb700 100%); box-shadow: 0 0 15px rgba(255, 215, 0, 0.5); }
+
+        .keyboard { display: flex; justify-content: center; margin-top: 20px; flex-wrap: wrap; gap: 2px; height: 160px; flex-shrink: 0; }
         .key { width: 45px; height: 150px; background: #f5f5f5; border: 2px solid #bbb; border-radius: 0 0 12px 12px; cursor: pointer; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 12px; font-size: 12px; color: #333; transition: all 0.1s ease-out; user-select: none; }
         .key.active { background: linear-gradient(180deg, #ffd700 0%, #ffb700 50%, #ff8f00 100%); transform: translateY(6px); box-shadow: 0 0 20px rgba(255, 215, 0, 0.6); }
         .black-key { background: #1a1a1a; color: #ffd700; height: 100px; width: 28px; margin: 0 -14px; z-index: 1; border-radius: 0 0 8px 8px; }
         .black-key.active { background: linear-gradient(180deg, #ffb700 0%, #ff8f00 100%); transform: translateY(4px); box-shadow: 0 0 15px rgba(255, 215, 0, 0.8); }
         .value-display { color: rgba(255, 215, 0, 0.8); font-size: 0.85em; text-align: right; margin-top: 5px;}
-        .sequencer-editor { position: relative; flex-grow: 1; }
-        #sequencerCode, #sequencerHighlight { width: 100%; height: 100%; padding: 15px; font-family: 'Courier New', Courier, monospace; font-size: 16px; line-height: 1.6; border-radius: 12px; white-space: pre; overflow-wrap: normal; overflow-x: auto; }
-        #sequencerHighlight { position: absolute; top: 0; left: 0; color: transparent; background-color: transparent; z-index: 1; pointer-events: none; border: 2px solid transparent; }
-        #sequencerHighlight .highlight-bar { position: absolute; width: 100%; background-color: rgba(255, 215, 0, 0.2); z-index: -1; transition: top 0.1s ease-out; }
-        #sequencerCode { position: absolute; top: 0; left: 0; background-color: transparent; color: #ffd700; border: 2px solid rgba(255, 215, 0, 0.3); resize: none; z-index: 2; }
-        #sequencerCode:focus { outline: none; border-color: #ffd700; }
-        .sequencer-buttons { display: flex; flex-wrap: wrap; gap: 15px; margin-top: 20px; }
+        
+        .sequencer-top-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-shrink: 0; }
+        .toggles-container { display: flex; gap: 20px; }
+        .loop-toggle { display: flex; align-items: center; gap: 10px; color: rgba(255, 215, 0, 0.8); cursor: pointer; font-size: 0.9em; }
+        .loop-toggle input { display: none; }
+        .loop-toggle .toggle-switch { width: 40px; height: 22px; background: #333; border: 1px solid rgba(255, 215, 0, 0.3); border-radius: 11px; position: relative; transition: background-color 0.3s ease; }
+        .loop-toggle .toggle-switch::before { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; background: #aaa; border-radius: 50%; transition: transform 0.3s ease; }
+        .loop-toggle input:checked + .toggle-switch { background-color: #ffd700; }
+        .loop-toggle input:checked + .toggle-switch::before { background-color: #1a1a1a; transform: translateX(18px); }
+
+        .sequencer-editor-container { display: flex; position: relative; flex-grow: 1; background-color: transparent; border: 2px solid rgba(255, 215, 0, 0.3); border-radius: 12px; overflow: hidden; }
+        #line-numbers {
+            font-family: 'Courier New', Courier, monospace; font-size: 16px; line-height: 1.6; padding: 15px 10px; width: 60px;
+            text-align: right; user-select: none; overflow: hidden; border-radius: 10px 0 0 10px; flex-shrink: 0;
+            background-color: #111;
+        }
+        .line-number-item { color: rgba(255, 215, 0, 0.4); transition: color 0.2s ease; }
+        .line-number-item.active { color: #ffd700; font-weight: bold; }
+
+        .sequencer-editor { position: relative; flex-grow: 1; overflow-y: auto; }
+        #sequencerCode, #sequencerHighlight {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; padding: 15px; font-family: 'Courier New', Courier, monospace;
+            font-size: 16px; line-height: 1.6; border-radius: 0 10px 10px 0; white-space: pre; overflow-wrap: normal;
+            border: none;
+        }
+        #sequencerHighlight { color: transparent; background-color: transparent; z-index: 1; pointer-events: none; overflow-y: scroll; }
+        #editing-highlight-bar { position: absolute; width: 100%; background-color: rgba(255, 215, 0, 0.15); z-index: -2; display: none; }
+        .highlight-bar { position: absolute; width: 100%; background-color: rgba(0, 200, 255, 0.2); z-index: -1; transition: top 0.1s ease-out; }
+        #sequencerCode { background-color: transparent; color: #ffd700; resize: none; z-index: 2; overflow-x: auto; overflow-y: scroll; }
+        #sequencerCode:disabled { cursor: not-allowed; opacity: 0.6; }
+        .sequencer-editor-container:focus-within { border-color: #ffd700; }
+        #sequencerCode:focus { outline: none; }
+
+        .sequencer-buttons { display: flex; flex-wrap: wrap; gap: 15px; margin-top: 20px; flex-shrink: 0; }
         .sequencer-buttons button { flex-grow: 1; padding: 15px; font-size: 1.1em; color: #1a1a1a; background: linear-gradient(135deg, #ffd700 0%, #ffb700 100%); border: none; border-radius: 12px; cursor: pointer; min-width: 100px; }
         .sequencer-buttons button:disabled { background: #555; color: #888; cursor: not-allowed; }
         .sequencer-buttons button#stopSequenceBtn { background: linear-gradient(135deg, #555 0%, #333 100%); color: #ccc; }
@@ -68,7 +104,7 @@
         .lang-switcher { position: fixed; top: 20px; left: 20px; z-index: 1000; }
         .lang-switcher button { color: #8fb1bf; text-decoration: none; font-size: 14px; background-color: rgba(20, 20, 20, 0.5); padding: 8px 12px; border-radius: 8px; transition: all 0.3s ease; border: 1px solid rgba(255, 215, 0, 0.2); cursor: pointer;}
         .lang-switcher button:hover { background-color: rgba(40, 40, 40, 0.8); color: #fff; }
-        @media (max-width: 1200px) { .main-container { flex-direction: column; } .synthesizer { min-width: unset; } }
+        @media (max-width: 1200px) { body { height: auto; overflow: auto; } .main-container { flex-direction: column; height: auto; } }
     </style>
 </head>
 <body>
@@ -138,18 +174,33 @@
                     </div>
                 </div>
             </div>
-            <div class="keyboard">
-                <!-- FIX: Added back the keyboard HTML -->
-                <div class="key" data-note="C3">C3</div><div class="key black-key" data-note="C#3">C#3</div><div class="key" data-note="D3">D3</div><div class="key black-key" data-note="D#3">D#3</div><div class="key" data-note="E3">E3</div><div class="key" data-note="F3">F3</div><div class="key black-key" data-note="F#3">F#3</div><div class="key" data-note="G3">G3</div><div class="key black-key" data-note="G#3">G#3</div><div class="key" data-note="A3">A3</div><div class="key black-key" data-note="A#3">A#3</div><div class="key" data-note="B3">B3</div>
-                <div class="key" data-note="C4">C4</div><div class="key black-key" data-note="C#4">C#4</div><div class="key" data-note="D4">D4</div><div class="key black-key" data-note="D#4">D#4</div><div class="key" data-note="E4">E4</div><div class="key" data-note="F4">F4</div><div class="key black-key" data-note="F#4">F#4</div><div class="key" data-note="G4">G4</div><div class="key black-key" data-note="G#4">G#4</div><div class="key" data-note="A4">A4</div><div class="key black-key" data-note="A#4">A#4</div><div class="key" data-note="B4">B4</div>
-                <div class="key" data-note="C5">C5</div><div class="key black-key" data-note="C#5">C#5</div><div class="key" data-note="D5">D5</div><div class="key black-key" data-note="D#5">D#5</div><div class="key" data-note="E5">E5</div><div class="key" data-note="F5">F5</div><div class="key black-key" data-note="F#5">F#5</div><div class="key" data-note="G5">G5</div><div class="key black-key" data-note="G#5">G#5</div><div class="key" data-note="A5">A5</div><div class="key black-key" data-note="A#5">A#5</div><div class="key" data-note="B5">B5</div>
-            </div>
+            
+            <div id="octave-selector" class="octave-selector"></div>
+            
+            <div id="keyboard" class="keyboard"></div>
         </div>
         <div class="sequencer-panel">
-             <h2 data-i18n-key="sequencerTitle">Code Sequencer</h2>
-             <div class="sequencer-editor">
-                 <pre id="sequencerHighlight"><span class="highlight-bar"></span></pre>
-                 <textarea id="sequencerCode" spellcheck="false"></textarea>
+            <div class="sequencer-top-controls">
+                <h2 data-i18n-key="sequencerTitle">Code Sequencer</h2>
+                <div class="toggles-container">
+                    <label class="loop-toggle">
+                        <span data-i18n-key="loopLabel">循環</span>
+                        <input type="checkbox" id="loop-toggle-checkbox">
+                        <span class="toggle-switch"></span>
+                    </label>
+                    <label class="loop-toggle">
+                        <span data-i18n-key="recordLabel">寫入</span>
+                        <input type="checkbox" id="record-toggle-checkbox">
+                        <span class="toggle-switch"></span>
+                    </label>                    
+                </div>
+            </div>
+             <div class="sequencer-editor-container">
+                <div id="line-numbers"></div>
+                <div class="sequencer-editor">
+                    <pre id="sequencerHighlight"></pre>
+                    <textarea id="sequencerCode" spellcheck="false"></textarea>
+                </div>
              </div>
              <div class="sequencer-buttons">
                  <button id="playSequenceBtn" data-i18n-key="playBtn">Play</button>
@@ -159,101 +210,73 @@
         </div>
     </div>
 
-     <a href="https://portaly.cc/tangledkai_2.0/" target="_blank" rel="noopener noreferrer" class="footer-link" data-i18n-key="authorLink">tangledkai_2.0 製作</a>
+    <a href="https://portaly.cc/tangledkai_2.0/" target="_blank" rel="noopener noreferrer" class="footer-link" data-i18n-key="authorLink">tangledkai_2.0 製作</a>
 
     <script>
         const translations = {
             'zh-TW': {
-                mainTitle: '♬ 音頻合成器',
-                sequencerTitle: '程式碼音序器',
-                oscillatorTitle: '振盪器',
-                waveformLabel: '波形類型',
-                waveSine: '正弦波 (Sine)',
-                waveSquare: '方波 (Square)',
-                waveSawtooth: '鋸齒波 (Sawtooth)',
-                waveTriangle: '三角波 (Triangle)',
-                wavePulse: '脈衝波 (Pulse)',
-                waveNoise: '噪音 (Noise)',
-                waveFM: 'FM 合成',
-                volumeLabel: '音量',
-                pulseWidthLabel: '脈衝寬度',
-                fmDepthLabel: 'FM 深度',
-                filterTitle: '濾波器',
-                filterFreqLabel: '截止頻率',
-                filterQLabel: '共振 (Q值)',
-                envelopeTitle: '包絡',
-                attackLabel: '起音時間',
-                releaseLabel: '釋音時間',
-                playBtn: '播放',
-                stopBtn: '停止',
-                exportBtn: '匯出 MP3',
-                exportRendering: '渲染中...',
-                exportEncoding: 'MP3編碼中...',
-                authorLink: 'tangledkai_2.0 製作',
-                sequencerPlaceholder: '語法: 音名 時長(毫秒)\n--- 代表休止符\n| 分隔同時播放的音符\n\n範例 (和弦):\nC4 500 | E4 500 | G4 500\n--- 250\nF3 500 | A3 500 | C4 500',
-                langToggle: 'English'
+                mainTitle: '♬ 音頻合成器', sequencerTitle: '程式碼音序器', oscillatorTitle: '振盪器', waveformLabel: '波形類型',
+                waveSine: '正弦波 (Sine)', waveSquare: '方波 (Square)', waveSawtooth: '鋸齒波 (Sawtooth)', waveTriangle: '三角波 (Triangle)',
+                wavePulse: '脈衝波 (Pulse)', waveNoise: '噪音 (Noise)', waveFM: 'FM 合成', volumeLabel: '音量',
+                pulseWidthLabel: '脈衝寬度', fmDepthLabel: 'FM 深度', filterTitle: '濾波器', filterFreqLabel: '截止頻率',
+                filterQLabel: '共振 (Q值)', envelopeTitle: '包絡', attackLabel: '起音時間', releaseLabel: '釋音時間',
+                playBtn: '播放', stopBtn: '停止', exportBtn: '匯出 MP3', exportRendering: '渲染中...',
+                exportEncoding: 'MP3編碼中...', authorLink: 'tangledkai_2.0 製作',
+                sequencerPlaceholder: '語法: 音名 時長(毫秒)\n--- 代表休止符\n| 分隔同時播放的音符\n\n範例 (和弦):\nC4 500 | E4 500 | G4 500\n--- 250\nF3 500 | A3 500 | C4 500 \n\n寫入:快捷鍵『|』  循環:快捷鍵『]』\n音域快速切換:快捷鍵『~』&『1』',
+                langToggle: 'English', loopLabel: '循環', recordLabel: '寫入'
             },
             'en': {
-                mainTitle: '♬ Audio Synthesizer',
-                sequencerTitle: 'Code Sequencer',
-                oscillatorTitle: 'Oscillator',
-                waveformLabel: 'Waveform Type',
-                waveSine: 'Sine',
-                waveSquare: 'Square',
-                waveSawtooth: 'Sawtooth',
-                waveTriangle: 'Triangle',
-                wavePulse: 'Pulse',
-                waveNoise: 'Noise',
-                waveFM: 'FM Synthesis',
-                volumeLabel: 'Volume',
-                pulseWidthLabel: 'Pulse Width',
-                fmDepthLabel: 'FM Depth',
-                filterTitle: 'Filter',
-                filterFreqLabel: 'Cutoff Frequency',
-                filterQLabel: 'Resonance (Q)',
-                envelopeTitle: 'Envelope',
-                attackLabel: 'Attack Time',
-                releaseLabel: 'Release Time',
-                playBtn: 'Play',
-                stopBtn: 'Stop',
-                exportBtn: 'Export MP3',
-                exportRendering: 'Rendering...',
-                exportEncoding: 'Encoding MP3...',
-                authorLink: 'Made by tangledkai_2.0',
+                mainTitle: '♬ Audio Synthesizer', sequencerTitle: 'Code Sequencer', oscillatorTitle: 'Oscillator', waveformLabel: 'Waveform Type',
+                waveSine: 'Sine', waveSquare: 'Square', waveSawtooth: 'Sawtooth', waveTriangle: 'Triangle',
+                wavePulse: 'Pulse', waveNoise: 'Noise', waveFM: 'FM Synthesis', volumeLabel: 'Volume',
+                pulseWidthLabel: 'Pulse Width', fmDepthLabel: 'FM Depth', filterTitle: 'Filter', filterFreqLabel: 'Cutoff Frequency',
+                filterQLabel: 'Resonance (Q)', envelopeTitle: 'Envelope', attackLabel: 'Attack Time', releaseLabel: 'Release Time',
+                playBtn: 'Play', stopBtn: 'Stop', exportBtn: 'Export MP3', exportRendering: 'Rendering...',
+                exportEncoding: 'Encoding MP3...', authorLink: 'Made by tangledkai_2.0',
                 sequencerPlaceholder: 'Syntax: Note Duration(ms)\n--- for rests\n| to play notes simultaneously\n\nExample (Chord):\nC4 500 | E4 500 | G4 500\n--- 250\nF3 500 | A3 500 | C4 500',
-                langToggle: '正體中文'
+                langToggle: '正體中文', loopLabel: 'Loop', recordLabel: 'Record'
             }
         };
 
         class SimpleSynthesizer {
             constructor() {
-                // FIX: Added back all the necessary property initializations
                 this.audioContext = null;
                 this.liveAudioContext = null;
                 this.activeOscillators = new Map();
                 this.isPlayingSequence = false;
                 this.isExporting = false;
+                this.isLooping = false;
+                this.isRecording = false;
+                this.recordingNotes = new Map();
+                this.completedNotesBuffer = []; // FIX: Re-initialize buffer
+                this.writeBufferTimeout = null; // FIX: Re-initialize timeout
                 this.sequenceTimeouts = [];
-                this.whiteNoiseBuffer = null;
                 this.currentLanguage = 'zh-TW';
+                this.currentLine = 0;
 
-                this.settings = {
-                    waveform: 'sine',
-                    volume: 0.3,
-                    filterFreq: 1000,
-                    filterQ: 1,
-                    attack: 0.1,
-                    release: 0.5,
-                    pulseWidth: 0.5,
-                    fmDepth: 100,
+                this.settings = { waveform: 'sine', volume: 0.3, filterFreq: 1000, filterQ: 1, attack: 0.1, release: 0.5, pulseWidth: 0.5, fmDepth: 100 };
+                
+                this.noteFrequencies = {
+                    'C2': 65.41, 'C#2': 69.30, 'D2': 73.42, 'D#2': 77.78, 'E2': 82.41, 'F2': 87.31, 'F#2': 92.50, 'G2': 98.00, 'G#2': 103.83, 'A2': 110.00, 'A#2': 116.54, 'B2': 123.47,
+                    'C3': 130.81, 'C#3': 138.59, 'D3': 146.83, 'D#3': 155.56, 'E3': 164.81, 'F3': 174.61, 'F#3': 185.00, 'G3': 196.00, 'G#3': 207.65, 'A3': 220.00, 'A#3': 233.08, 'B3': 246.94,
+                    'C4': 261.63, 'C#4': 277.18, 'D4': 293.66, 'D#4': 311.13, 'E4': 329.63, 'F4': 349.23, 'F#4': 369.99, 'G4': 392.00, 'G#4': 415.30, 'A4': 440.00, 'A#4': 466.16, 'B4': 493.88,
+                    'C5': 523.25, 'C#5': 554.37, 'D5': 587.33, 'D#5': 622.25, 'E5': 659.25, 'F5': 698.46, 'F#5': 739.99, 'G5': 783.99, 'G#5': 830.61, 'A5': 880.00, 'A#5': 932.33, 'B5': 987.77,
+                    'C6': 1046.50, 'C#6': 1108.73, 'D6': 1174.66, 'D#6': 1244.51, 'E6': 1318.51, 'F6': 1396.91, 'F#6': 1479.98, 'G6': 1567.98, 'G#6': 1661.22, 'A6': 1760.00, 'A#6': 1864.66, 'B6': 1975.53
                 };
                 
-                this.noteFrequencies = { 'C3': 130.81, 'C#3': 138.59, 'D3': 146.83, 'D#3': 155.56, 'E3': 164.81, 'F3': 174.61, 'F#3': 185.00, 'G3': 196.00, 'G#3': 207.65, 'A3': 220.00, 'A#3': 233.08, 'B3': 246.94,'C4': 261.63, 'C#4': 277.18, 'D4': 293.66, 'D#4': 311.13, 'E4': 329.63, 'F4': 349.23, 'F#4': 369.99, 'G4': 392.00, 'G#4': 415.30, 'A4': 440.00, 'A#4': 466.16, 'B4': 493.88,'C5': 523.25, 'C#5': 554.37, 'D5': 587.33, 'D#5': 622.25, 'E5': 659.25, 'F5': 698.46, 'F#5': 739.99, 'G5': 783.99, 'G#5': 830.61, 'A5': 880.00, 'A#5': 932.33, 'B5': 987.77 };
+                this.octaveRanges = [2, 3, 4];
+                this.currentOctaveIndex = 1;
+                this.keyMap = {};
                 
                 this.initDomElements();
                 this.initAudio();
                 this.setupEventListeners();
                 this.setLanguage(this.currentLanguage);
+                
+                this.setOctaveView(this.currentOctaveIndex);
+                this.syncHighlighterContent();
+                this.updateLineNumbers();
+                this.updateCursorHighlight();
             }
             
             initDomElements() {
@@ -262,26 +285,29 @@
                 this.fmDepthControl = document.getElementById('fm-depth-control');
                 this.sequencerCodeEl = document.getElementById('sequencerCode');
                 this.sequencerHighlightEl = document.getElementById('sequencerHighlight');
-                this.highlightBarEl = this.sequencerHighlightEl.querySelector('.highlight-bar');
                 this.playBtn = document.getElementById('playSequenceBtn');
                 this.stopBtn = document.getElementById('stopSequenceBtn');
                 this.exportBtn = document.getElementById('exportMp3Btn');
+                this.keyboardEl = document.getElementById('keyboard');
+                this.octaveSelectorEl = document.getElementById('octave-selector');
+                this.lineNumbersEl = document.getElementById('line-numbers');
+                this.loopToggleCheckbox = document.getElementById('loop-toggle-checkbox');
+                this.recordToggleCheckbox = document.getElementById('record-toggle-checkbox');
             }
 
             setLanguage(lang) {
                 this.currentLanguage = lang;
                 const langDict = translations[lang];
-
                 document.querySelectorAll('[data-i18n-key]').forEach(element => {
                     const key = element.getAttribute('data-i18n-key');
                     if (langDict[key]) {
                         element.textContent = langDict[key];
                     }
                 });
-
                 this.sequencerCodeEl.placeholder = langDict.sequencerPlaceholder;
                 this.langToggleBtn.textContent = langDict.langToggle;
                 this.updateDisplayValues();
+                this.updateLineNumbers();
             }
             
             setupEventListeners() {
@@ -290,9 +316,19 @@
                     this.setLanguage(newLang);
                 });
 
-                 this.playBtn.addEventListener('click', () => this.playSequence());
+                this.playBtn.addEventListener('click', () => this.playSequence());
                 this.stopBtn.addEventListener('click', () => this.stopSequence());
                 this.exportBtn.addEventListener('click', () => this.exportToMp3());
+                this.loopToggleCheckbox.addEventListener('change', (e) => {
+                    this.isLooping = e.target.checked;
+                });
+                this.recordToggleCheckbox.addEventListener('change', (e) => {
+                    this.isRecording = e.target.checked;
+                    this.sequencerCodeEl.disabled = this.isRecording;
+                    if (!this.isRecording) {
+                        this.sequencerCodeEl.focus();
+                    }
+                });
 
                 document.getElementById('waveform').addEventListener('change', (e) => {
                     this.settings.waveform = e.target.value;
@@ -306,30 +342,259 @@
                     attack: (val) => { this.settings.attack = val; },
                     release: (val) => { this.settings.release = val; },
                     pulseWidth: (val) => { this.settings.pulseWidth = val; },
-                    fmDepth: (val) => { this.settings.fmDepth = val; }
+                    fmDepth: (val) => { this.settings.fmDepth = val; },
                 };
-
                 for (const [id, setter] of Object.entries(sliders)) {
                     document.getElementById(id)?.addEventListener('input', (e) => {
                         setter(parseFloat(e.target.value));
                         this.updateDisplayValues();
                     });
                 }
-                 document.querySelectorAll('.key').forEach(key => { const note = key.dataset.note; const stopHandler = () => { this.stopNote(note); key.classList.remove('active'); }; key.addEventListener('mousedown', (e) => { e.preventDefault(); this.playNote(note); key.classList.add('active'); }); key.addEventListener('mouseup', stopHandler); key.addEventListener('mouseleave', () => { if (this.activeOscillators.has(note)) stopHandler(); }); });
-                const keyMap = { 'z': 'C3', 's': 'C#3', 'x': 'D3', 'd': 'D#3', 'c': 'E3', 'v': 'F3', 'g': 'F#3', 'b': 'G3', 'h': 'G#3', 'n': 'A3', 'j': 'A#3', 'm': 'B3', 'q': 'C4', '2': 'C#4', 'w': 'D4', '3': 'D#4', 'e': 'E4', 'r': 'F4', '5': 'F#4', 't': 'G4', '6': 'G#4', 'y': 'A4', '7': 'A#4', 'u': 'B4', 'i': 'C5', '9': 'C#5', 'o': 'D5', '0': 'D#5', 'p': 'E5', '[': 'F5', '=': 'F#5', ']': 'G5', '\\': 'G#5' };
-                document.addEventListener('keydown', (e) => { if (e.target === this.sequencerCodeEl) return; const note = keyMap[e.key.toLowerCase()]; if (note && !e.repeat && !this.activeOscillators.has(note)) { this.playNote(note); const keyEl = document.querySelector(`[data-note="${note}"]`); if(keyEl) keyEl.classList.add('active'); } });
-                document.addEventListener('keyup', (e) => { if (e.target === this.sequencerCodeEl) return; const note = keyMap[e.key.toLowerCase()]; if (note) { this.stopNote(note); const keyEl = document.querySelector(`[data-note="${note}"]`); if(keyEl) keyEl.classList.remove('active'); } });
-                this.sequencerCodeEl.addEventListener('scroll', () => { this.sequencerHighlightEl.scrollTop = this.sequencerCodeEl.scrollTop; this.sequencerHighlightEl.scrollLeft = this.sequencerCodeEl.scrollLeft; });
-                this.sequencerCodeEl.addEventListener('input', () => { this.syncHighlighterContent(); });
+                
+                document.addEventListener('keydown', (e) => {
+                    if (e.target === this.sequencerCodeEl) return;
+                    if (e.key === '`' || e.key === '~') { this.changeOctave(-1); return; }
+                    if (e.key === '1') { this.changeOctave(1); return; }
+
+            // 快捷鍵：] 切換循環(Loop)
+            if (e.key === ']') {
+                this.loopToggleCheckbox.checked = !this.loopToggleCheckbox.checked;
+                this.isLooping = this.loopToggleCheckbox.checked;
+                return;
+            }
+            // 快捷鍵：\ 切換寫入(Record)
+            if (e.key === '\\') {
+                this.recordToggleCheckbox.checked = !this.recordToggleCheckbox.checked;
+                this.isRecording = this.recordToggleCheckbox.checked;
+                this.sequencerCodeEl.disabled = this.isRecording;
+                // 不自動 focus 編輯區，避免無法再次用快捷鍵取消
+                return;
+            }
+                    
+                    const note = this.keyMap[e.key.toLowerCase()];
+                    if (note && !e.repeat && !this.activeOscillators.has(note)) {
+                        this.playNote(note);
+                        const keyEl = document.querySelector(`[data-note="${note}"]`);
+                        if (keyEl) keyEl.classList.add('active');
+                    }
+                });
+                
+                document.addEventListener('keyup', (e) => {
+                    if (e.target === this.sequencerCodeEl) return;
+                    const note = this.keyMap[e.key.toLowerCase()];
+                    if (note) {
+                        this.stopNote(note);
+                        const keyEl = document.querySelector(`[data-note="${note}"]`);
+                        if (keyEl) keyEl.classList.remove('active');
+                    }
+                });
+                
+                this.sequencerCodeEl.addEventListener('scroll', () => {
+                    this.sequencerHighlightEl.scrollTop = this.sequencerCodeEl.scrollTop;
+                    this.lineNumbersEl.scrollTop = this.sequencerCodeEl.scrollTop;
+                });
+                
+                this.sequencerCodeEl.addEventListener('input', () => {
+                    this.sequencerHighlightEl.textContent = this.sequencerCodeEl.value;
+                    this.syncHighlighterContent();
+                    this.updateLineNumbers();
+                    this.updateCursorHighlight();
+                });
+
+                this.sequencerCodeEl.addEventListener('click', () => this.updateCursorHighlight());
+                this.sequencerCodeEl.addEventListener('keyup', () => this.updateCursorHighlight());
+                this.sequencerCodeEl.addEventListener('focus', () => this.updateCursorHighlight());
+            }
+            
+            updateLineNumbers() {
+                this.lineNumbersEl.innerHTML = ''; 
+                const lineCount = this.sequencerCodeEl.value.split('\n').length || 1;
+                for (let i = 1; i <= lineCount; i++) {
+                    const numberDiv = document.createElement('div');
+                    numberDiv.className = 'line-number-item';
+                    const prefix = String.fromCharCode('A'.charCodeAt(0) + Math.floor((i - 1) / 99));
+                    const number = String((i - 1) % 99 + 1).padStart(2, '0');
+                    numberDiv.textContent = `${prefix}${number}`;
+                    this.lineNumbersEl.appendChild(numberDiv);
+                }
             }
 
+            updateCursorHighlight() {
+                if(this.isPlayingSequence) return;
+
+                const textUpToCursor = this.sequencerCodeEl.value.substring(0, this.sequencerCodeEl.selectionStart);
+                const cursorLine = (textUpToCursor.match(/\n/g) || []).length;
+                
+                this.lineNumbersEl.childNodes.forEach((div, index) => {
+                    div.classList.toggle('active', index === cursorLine);
+                });
+
+                const lineHeight = parseFloat(getComputedStyle(this.sequencerCodeEl).lineHeight);
+                this.editingHighlightBar.style.height = `${lineHeight}px`;
+                this.editingHighlightBar.style.top = `${cursorLine * lineHeight}px`;
+                this.editingHighlightBar.style.display = 'block';
+            }
+
+            setOctaveView(index) {
+                this.currentOctaveIndex = index;
+                this.generateOctaveButtons();
+                this.generateKeyboard();
+                this.attachKeyListeners();
+                this.updateKeyMap();
+            }
+
+            changeOctave(direction) {
+                let newIndex = this.currentOctaveIndex + direction;
+                if (newIndex < 0) newIndex = this.octaveRanges.length - 1;
+                if (newIndex >= this.octaveRanges.length) newIndex = 0;
+                this.setOctaveView(newIndex);
+            }
+            
+            generateOctaveButtons() {
+                this.octaveSelectorEl.innerHTML = '';
+                this.octaveRanges.forEach((startOctave, index) => {
+                    const button = document.createElement('button');
+                    button.className = 'octave-btn';
+                    button.textContent = `[ C${startOctave} – C${startOctave + 2} ]`;
+                    if (index === this.currentOctaveIndex) button.classList.add('active');
+                    button.addEventListener('click', () => this.setOctaveView(index));
+                    this.octaveSelectorEl.appendChild(button);
+                });
+            }
+            
+            generateKeyboard() {
+                this.keyboardEl.innerHTML = '';
+                const startOctave = this.octaveRanges[this.currentOctaveIndex];
+                const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+                for (let octave = startOctave; octave < startOctave + 3; octave++) {
+                    noteNames.forEach(noteName => {
+                        const note = `${noteName}${octave}`;
+                        const key = document.createElement('div');
+                        key.className = 'key';
+                        if (noteName.includes('#')) key.classList.add('black-key');
+                        key.dataset.note = note;
+                        key.textContent = note;
+                        this.keyboardEl.appendChild(key);
+                    });
+                }
+            }
+
+            attachKeyListeners() {
+                document.querySelectorAll('.key').forEach(key => {
+                    const note = key.dataset.note;
+                    const stopHandler = () => {
+                        this.stopNote(note);
+                        key.classList.remove('active');
+                    };
+                    key.addEventListener('mousedown', (e) => {
+                        e.preventDefault();
+                        this.playNote(note);
+                        key.classList.add('active');
+                    });
+                    key.addEventListener('mouseup', stopHandler);
+                    key.addEventListener('mouseleave', () => {
+                        if (this.activeOscillators.has(note)) stopHandler();
+                    });
+                });
+            }
+                /*  ['z', 's', 'x', 'd', 'c', 'v', 'g', 'b', 'h', 'n', 'j', 'm'],
+                    ['q', '2', 'w', '3', 'e', 'r', '5', 't', '6', 'y', '7', 'u'],
+                    ['i', '9', 'o', '0', 'p', '[', '=', ']']*/
+            updateKeyMap() {
+                const startOctave = this.octaveRanges[this.currentOctaveIndex];
+                const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+                const keyRows = [
+                    ['z', 's', 'x', 'd', 'c', 'v', 'g', 'b', 'h', 'n', 'j', 'm'],
+                    [',', 'l', '.', ';', '/', 'q', '2', 'w', '3', 'e', '4', 'r'],
+                    ['t', '6', 'y', '7', 'u', 'i', '9', 'o', '0', 'p', '-', '[']
+
+                ];
+                this.keyMap = {};
+                keyRows.forEach((row, rowIndex) => {
+                    const currentOctave = startOctave + rowIndex;
+                    row.forEach((keyChar, noteIndex) => {
+                        if (noteNames[noteIndex]) {
+                            this.keyMap[keyChar] = `${noteNames[noteIndex]}${currentOctave}`;
+                        }
+                    });
+                });
+            }
+
+            playSequence(isLoop = false) {
+                if (this.isPlayingSequence || this.isExporting) return;
+                
+                if (!isLoop) {
+                    const textUpToCursor = this.sequencerCodeEl.value.substring(0, this.sequencerCodeEl.selectionStart);
+                    this.currentLine = (textUpToCursor.match(/\n/g) || []).length;
+                }
+                
+                this.stopSequence();
+                this.editingHighlightBar.style.display = 'none'; 
+
+                this.liveAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+                if (this.liveAudioContext.state === 'suspended') this.liveAudioContext.resume();
+                
+                this.isPlayingSequence = true;
+                this.playBtn.disabled = true;
+                this.exportBtn.disabled = true;
+            
+                const onStepCallback = (actualLineIndex, time) => {
+                    this.sequenceTimeouts.push(setTimeout(() => {
+                        if (!this.isPlayingSequence) return;
+                        this.updateHighlight(actualLineIndex);
+                    }, time));
+                };
+            
+                const onNoteCallback = (note, time, duration) => {
+                    const keyEl = document.querySelector(`[data-note="${note}"]`);
+                    if (!keyEl) return;
+                    this.sequenceTimeouts.push(setTimeout(() => {
+                        if (!this.isPlayingSequence) return;
+                        keyEl.classList.add('active');
+                    }, time));
+                    this.sequenceTimeouts.push(setTimeout(() => {
+                        if (!this.isPlayingSequence) return;
+                        keyEl.classList.remove('active');
+                    }, time + duration));
+                };
+            
+                const totalDuration = this.scheduleSequence(this.liveAudioContext, onStepCallback, onNoteCallback, this.currentLine);
+            
+                this.sequenceTimeouts.push(setTimeout(() => {
+                    this.stopSequence(true);
+                }, totalDuration));
+            }
+
+            stopSequence(isNaturalEnd = false) {
+                if (this.liveAudioContext) {
+                    this.liveAudioContext.close().catch(e => {});
+                    this.liveAudioContext = null;
+                }
+                this.sequenceTimeouts.forEach(clearTimeout);
+                this.sequenceTimeouts = [];
+                
+                this.isPlayingSequence = false;
+                this.playBtn.disabled = false;
+                this.exportBtn.disabled = false;
+                document.querySelectorAll('.key.active').forEach(key => key.classList.remove('active'));
+                
+                if (isNaturalEnd && this.isLooping) {
+                    this.currentLine = 0;
+                    this.playSequence(true);
+                } else {
+                    if (isNaturalEnd) this.currentLine = 0;
+                    this.updateHighlight(-1);
+                    this.updateCursorHighlight();
+                }
+            }
+            
             async exportToMp3() {
                 if (this.isExporting || this.isPlayingSequence) return;
                 this.isExporting = true;
                 this.exportBtn.textContent = translations[this.currentLanguage].exportRendering;
                 this.playBtn.disabled = true;
                 this.exportBtn.disabled = true;
-
                 try {
                     const totalDurationMs = this.calculateSequenceDuration();
                     if (totalDurationMs <= 0) {
@@ -338,7 +603,7 @@
                     }
                     const sampleRate = 44100;
                     const offlineCtx = new OfflineAudioContext(1, sampleRate * (totalDurationMs / 1000), sampleRate);
-                    this.scheduleSequence(offlineCtx, null, null);
+                    this.scheduleSequence(offlineCtx, null, null, 0);
                     const renderedBuffer = await offlineCtx.startRendering();
                     this.exportBtn.textContent = translations[this.currentLanguage].exportEncoding;
                     const mp3Data = this.encodeBufferToMp3(renderedBuffer);
@@ -353,9 +618,7 @@
                     URL.revokeObjectURL(url);
                 } catch (e) {
                     console.error("匯出失敗:", e);
-                    if (e.message !== "No content to export") {
-                         alert("匯出MP3時發生錯誤。");
-                    }
+                    if (e.message !== "No content to export") alert("匯出MP3時發生錯誤。");
                 } finally {
                     this.isExporting = false;
                     this.exportBtn.textContent = translations[this.currentLanguage].exportBtn;
@@ -364,22 +627,321 @@
                 }
             }
             
-            initAudio() { try { this.audioContext = new (window.AudioContext || window.webkitAudioContext)(); this.createWhiteNoiseBuffer(); } catch (e) { console.error('Web Audio API is not supported in this browser'); } }
-            createWhiteNoiseBuffer() { if (!this.audioContext) return; const bufferSize = 2 * this.audioContext.sampleRate; this.whiteNoiseBuffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate); const output = this.whiteNoiseBuffer.getChannelData(0); for (let i = 0; i < bufferSize; i++) { output[i] = Math.random() * 2 - 1; } }
-            toggleCustomControls() { this.pulseWidthControl.classList.toggle('hidden-control', this.settings.waveform !== 'pulse'); this.fmDepthControl.classList.toggle('hidden-control', this.settings.waveform !== 'fm'); }
-            syncHighlighterContent() { this.sequencerHighlightEl.textContent = this.sequencerCodeEl.value; this.highlightBarEl = document.createElement('span'); this.highlightBarEl.className = 'highlight-bar'; this.sequencerHighlightEl.appendChild(this.highlightBarEl); this.highlightBarEl.style.display = 'none'; }
-            updateDisplayValues() { document.getElementById('volumeValue').textContent = `${Math.round(this.settings.volume * 100)}%`; document.getElementById('filterFreqValue').textContent = `${this.settings.filterFreq} Hz`; document.getElementById('filterQValue').textContent = this.settings.filterQ.toFixed(1); document.getElementById('attackValue').textContent = `${this.settings.attack.toFixed(2)}s`; document.getElementById('releaseValue').textContent = `${this.settings.release.toFixed(2)}s`; if (this.settings.waveform === 'pulse') { document.getElementById('pulseWidthValue').textContent = `${Math.round(this.settings.pulseWidth * 100)}%`; } if (this.settings.waveform === 'fm') { document.getElementById('fmDepthValue').textContent = this.settings.fmDepth.toFixed(0); } }
-            playNote(note) { if (!this.audioContext || this.activeOscillators.has(note)) return; if (this.audioContext.state === 'suspended') this.audioContext.resume(); const frequency = this.noteFrequencies[note]; if (!frequency && this.settings.waveform !== 'noise') return; const { mainSource, modulator } = this.createMainSourceNode(this.audioContext, frequency); const gainNode = this.audioContext.createGain(); const filter = this.audioContext.createBiquadFilter(); const now = this.audioContext.currentTime; filter.type = 'lowpass'; filter.frequency.value = this.settings.filterFreq; filter.Q.value = this.settings.filterQ; gainNode.gain.cancelScheduledValues(now); gainNode.gain.setValueAtTime(0, now); gainNode.gain.linearRampToValueAtTime(this.settings.volume, now + this.settings.attack); mainSource.connect(filter).connect(gainNode).connect(this.audioContext.destination); mainSource.start(); if (modulator) modulator.start(); this.activeOscillators.set(note, { mainSource, gainNode, modulator }); }
-            stopNote(note) { const nodeData = this.activeOscillators.get(note); if (!nodeData) return; const { mainSource, gainNode, modulator } = nodeData; const now = this.audioContext.currentTime; gainNode.gain.cancelScheduledValues(now); gainNode.gain.setValueAtTime(gainNode.gain.value, now); gainNode.gain.linearRampToValueAtTime(0, now + this.settings.release); const stopTime = now + this.settings.release + 0.1; mainSource.stop(stopTime); if (modulator) modulator.stop(stopTime); this.activeOscillators.delete(note); }
-            createMainSourceNode(audioCtx, frequency) { let mainSource, modulator; switch (this.settings.waveform) { case 'pulse': mainSource = audioCtx.createOscillator(); const pulseWave = this.createPulseWave(audioCtx, this.settings.pulseWidth); mainSource.setPeriodicWave(pulseWave); mainSource.frequency.value = frequency; break; case 'noise': mainSource = audioCtx.createBufferSource(); mainSource.buffer = this.whiteNoiseBuffer; mainSource.loop = true; break; case 'fm': const carrier = audioCtx.createOscillator(); carrier.type = 'sine'; carrier.frequency.value = frequency; modulator = audioCtx.createOscillator(); modulator.type = 'sine'; modulator.frequency.value = frequency * 2; const fmDepthGain = audioCtx.createGain(); fmDepthGain.gain.value = this.settings.fmDepth; modulator.connect(fmDepthGain); fmDepthGain.connect(carrier.frequency); mainSource = carrier; break; default: mainSource = audioCtx.createOscillator(); mainSource.type = this.settings.waveform; mainSource.frequency.value = frequency; } return { mainSource, modulator }; }
-            createPulseWave(audioCtx, dutyCycle) { const K = 100; const real = new Float32Array(K); const imag = new Float32Array(K); for(let n = 1; n < K; n++){ const c = (1 / (n * Math.PI)) * Math.sin(n * Math.PI * dutyCycle); real[n] = c * 2 * Math.cos(n * Math.PI * dutyCycle); imag[n] = -c * 2 * Math.sin(n * Math.PI * dutyCycle); } return audioCtx.createPeriodicWave(real, imag, { disableNormalization: false }); }
-            createNoteNode(audioCtx, note, startTime, durationSec) { const frequency = this.noteFrequencies[note]; if (!frequency && this.settings.waveform !== 'noise') return; const { mainSource, modulator } = this.createMainSourceNode(audioCtx, frequency); const gainNode = audioCtx.createGain(); const filter = audioCtx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.setValueAtTime(this.settings.filterFreq, startTime); filter.Q.setValueAtTime(this.settings.filterQ, startTime); gainNode.gain.setValueAtTime(0, startTime); gainNode.gain.linearRampToValueAtTime(this.settings.volume, startTime + this.settings.attack); gainNode.gain.linearRampToValueAtTime(0, startTime + durationSec + this.settings.release); mainSource.connect(filter).connect(gainNode).connect(audioCtx.destination); const stopTime = startTime + durationSec + this.settings.release + 0.1; mainSource.start(startTime); mainSource.stop(stopTime); if (modulator) { modulator.start(startTime); modulator.stop(stopTime); } }
-            scheduleSequence(audioCtx, onStep, onNote) { const code = this.sequencerCodeEl.value; const lines = code.split('\n'); let cumulativeTime = 0; lines.forEach((line, index) => { const commands = line.split('|').map(cmd => cmd.trim()); let maxDurationMsOnLine = 0; if (line.trim() === '') { maxDurationMsOnLine = 250; } else { if (onStep) onStep(index, cumulativeTime); commands.forEach(command => { const parts = command.split(/\s+/); if (parts.length < 2) return; const note = parts[0].toUpperCase(); const durationMs = parseInt(parts[1], 10); if (!isNaN(durationMs) && durationMs > 0) { if (durationMs > maxDurationMsOnLine) maxDurationMsOnLine = durationMs; this.createNoteNode(audioCtx, note, cumulativeTime / 1000, durationMs / 1000); if (onNote) onNote(note, cumulativeTime, durationMs); } }); } if (maxDurationMsOnLine === 0 && line.trim() !== '') maxDurationMsOnLine = 100; cumulativeTime += maxDurationMsOnLine; }); return cumulativeTime; }
-            calculateSequenceDuration() { const code = this.sequencerCodeEl.value; const lines = code.split('\n'); let cumulativeTime = 0; lines.forEach((line) => { const commands = line.split('|').map(cmd => cmd.trim()); let maxDurationMsOnLine = 0; if (line.trim() === '') { maxDurationMsOnLine = 250; } else { commands.forEach(command => { const parts = command.split(/\s+/); if (parts.length >= 2) { const durationMs = parseInt(parts[1], 10); if (!isNaN(durationMs) && durationMs > 0 && durationMs > maxDurationMsOnLine) { maxDurationMsOnLine = durationMs; } } }); } if (maxDurationMsOnLine === 0 && line.trim() !== '') maxDurationMsOnLine = 100; cumulativeTime += maxDurationMsOnLine; }); return cumulativeTime; }
-            playSequence() { if (this.isPlayingSequence || this.isExporting) return; this.stopSequence(); this.liveAudioContext = new (window.AudioContext || window.webkitAudioContext)(); if(this.liveAudioContext.state === 'suspended') this.liveAudioContext.resume(); this.isPlayingSequence = true; this.playBtn.disabled = true; this.exportBtn.disabled = true; this.syncHighlighterContent(); const onStepCallback = (index, time) => { this.sequenceTimeouts.push(setTimeout(() => { if (!this.isPlayingSequence) return; this.updateHighlight(index); }, time)); }; const onNoteCallback = (note, time, duration) => { const keyEl = document.querySelector(`[data-note="${note}"]`); if (!keyEl) return; this.sequenceTimeouts.push(setTimeout(() => { if (!this.isPlayingSequence) return; keyEl.classList.add('active'); }, time)); this.sequenceTimeouts.push(setTimeout(() => { if (!this.isPlayingSequence) return; keyEl.classList.remove('active'); }, time + duration)); }; const totalDuration = this.scheduleSequence(this.liveAudioContext, onStepCallback, onNoteCallback); this.sequenceTimeouts.push(setTimeout(() => { this.stopSequence(); }, totalDuration)); }
-            stopSequence() { if (this.liveAudioContext) { this.liveAudioContext.close().catch(e => {}); this.liveAudioContext = null; } this.sequenceTimeouts.forEach(clearTimeout); this.sequenceTimeouts = []; if (this.highlightBarEl) this.highlightBarEl.style.display = 'none'; this.isPlayingSequence = false; this.playBtn.disabled = false; this.exportBtn.disabled = false; document.querySelectorAll('.key.active').forEach(key => key.classList.remove('active')); }
-            encodeBufferToMp3(audioBuffer) { const sampleRate = audioBuffer.sampleRate; const mp3encoder = new lamejs.Mp3Encoder(1, sampleRate, 128); const samples = audioBuffer.getChannelData(0); const sampleBlockSize = 1152; const mp3Data = []; for (let i = 0; i < samples.length; i += sampleBlockSize) { const sampleChunk = samples.subarray(i, i + sampleBlockSize); const int16Chunk = new Int16Array(sampleChunk.length); for(let j=0; j<sampleChunk.length; j++){ int16Chunk[j] = sampleChunk[j] * 32767; } const mp3buf = mp3encoder.encodeBuffer(int16Chunk); if (mp3buf.length > 0) { mp3Data.push(mp3buf); } } const end = mp3encoder.flush(); if (end.length > 0) { mp3Data.push(end); } return mp3Data; }
-            updateHighlight(lineNumber) { const lineHeight = parseFloat(getComputedStyle(this.sequencerCodeEl).lineHeight); this.highlightBarEl.style.height = `${lineHeight}px`; this.highlightBarEl.style.top = `${lineNumber * lineHeight}px`; this.highlightBarEl.style.display = 'block'; const containerHeight = this.sequencerCodeEl.clientHeight; const scrollPos = this.sequencerCodeEl.scrollTop; const highlightPos = lineNumber * lineHeight; if (highlightPos < scrollPos || highlightPos >= scrollPos + containerHeight) { this.sequencerCodeEl.scrollTop = highlightPos - containerHeight / 2 + lineHeight / 2; } }
+            initAudio() {
+                try {
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                } catch (e) { console.error('Web Audio API is not supported in this browser'); }
+            }
+
+            toggleCustomControls() {
+                this.pulseWidthControl.classList.toggle('hidden-control', this.settings.waveform !== 'pulse');
+                this.fmDepthControl.classList.toggle('hidden-control', this.settings.waveform !== 'fm');
+            }
+
+            syncHighlighterContent() {
+                if (!this.sequencerHighlightEl) return;
+                
+                if (!this.sequencerHighlightEl.querySelector('.highlight-bar')) {
+                    const bar = document.createElement('span');
+                    bar.className = 'highlight-bar';
+                    this.sequencerHighlightEl.appendChild(bar);
+                }
+                this.highlightBarEl = this.sequencerHighlightEl.querySelector('.highlight-bar');
+                this.highlightBarEl.style.display = 'none';
+
+                if (!this.sequencerHighlightEl.querySelector('#editing-highlight-bar')) {
+                    const editingBar = document.createElement('span');
+                    editingBar.id = 'editing-highlight-bar';
+                    this.sequencerHighlightEl.appendChild(editingBar);
+                }
+                this.editingHighlightBar = this.sequencerHighlightEl.querySelector('#editing-highlight-bar');
+            }
+
+            updateDisplayValues() {
+                document.getElementById('volumeValue').textContent = `${Math.round(this.settings.volume * 100)}%`;
+                document.getElementById('filterFreqValue').textContent = `${this.settings.filterFreq} Hz`;
+                document.getElementById('filterQValue').textContent = this.settings.filterQ.toFixed(1);
+                document.getElementById('attackValue').textContent = `${this.settings.attack.toFixed(2)}s`;
+                document.getElementById('releaseValue').textContent = `${this.settings.release.toFixed(2)}s`;
+                if (this.settings.waveform === 'pulse') {
+                    document.getElementById('pulseWidthValue').textContent = `${Math.round(this.settings.pulseWidth * 100)}%`;
+                }
+                if (this.settings.waveform === 'fm') {
+                    document.getElementById('fmDepthValue').textContent = this.settings.fmDepth.toFixed(0);
+                }
+            }
+
+            playNote(note) {
+                if (!this.audioContext) this.initAudio();
+                if (!this.audioContext || this.activeOscillators.has(note)) return;
+                if (this.audioContext.state === 'suspended') this.audioContext.resume();
+                
+                if (this.isRecording) {
+                    this.recordingNotes.set(note, { startTime: performance.now() });
+                }
+
+                const frequency = this.noteFrequencies[note];
+                if (!frequency && this.settings.waveform !== 'noise') return;
+
+                const { mainSource, modulator } = this.createMainSourceNode(this.audioContext, frequency);
+                const gainNode = this.audioContext.createGain();
+                const filter = this.audioContext.createBiquadFilter();
+                const now = this.audioContext.currentTime;
+                filter.type = 'lowpass';
+                filter.frequency.value = this.settings.filterFreq;
+                filter.Q.value = this.settings.filterQ;
+                gainNode.gain.cancelScheduledValues(now);
+                gainNode.gain.setValueAtTime(0, now);
+                gainNode.gain.linearRampToValueAtTime(this.settings.volume, now + this.settings.attack);
+                mainSource.connect(filter).connect(gainNode).connect(this.audioContext.destination);
+                mainSource.start();
+                if (modulator) modulator.start();
+                this.activeOscillators.set(note, { mainSource, gainNode, modulator });
+            }
+
+            stopNote(note) {
+                const nodeData = this.activeOscillators.get(note);
+                if (!nodeData) return;
+
+                const { mainSource, gainNode, modulator } = nodeData;
+                const now = this.audioContext.currentTime;
+                gainNode.gain.cancelScheduledValues(now);
+                gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+                gainNode.gain.linearRampToValueAtTime(0, now + this.settings.release);
+                const stopTime = now + this.settings.release + 0.1;
+                mainSource.stop(stopTime);
+                if (modulator) modulator.stop(stopTime);
+                this.activeOscillators.delete(note);
+
+                // FIX: Restore chord recording logic
+                if (this.isRecording && this.recordingNotes.has(note)) {
+                    const startTime = this.recordingNotes.get(note).startTime;
+                    let duration = performance.now() - startTime;
+                    if (duration < 50) duration = 200;
+                    else duration = Math.round(duration / 10) * 10;
+
+                    this.completedNotesBuffer.push({ note, duration });
+                    this.recordingNotes.delete(note);
+
+                    clearTimeout(this.writeBufferTimeout);
+                    this.writeBufferTimeout = setTimeout(() => this.writeRecordedNotes(), 100);
+                }
+            }
+
+            writeRecordedNotes() {
+                if (this.completedNotesBuffer.length === 0) return;
+
+                const maxDuration = Math.max(...this.completedNotesBuffer.map(n => n.duration));
+                const noteString = this.completedNotesBuffer
+                    .map(n => `${n.note} ${maxDuration}`)
+                    .join(' | ');
+                
+                this.insertTextAtCursor(noteString);
+                this.completedNotesBuffer = [];
+            }
+
+            insertTextAtCursor(text) {
+                const textarea = this.sequencerCodeEl;
+                const start = textarea.selectionStart;
+                const end = textarea.selectionEnd;
+                const textBefore = textarea.value.substring(0, start);
+                const textAfter = textarea.value.substring(end, textarea.value.length);
+                
+                const prefix = (start === 0 || textarea.value[start - 1] === '\n') ? '' : '\n';
+
+                textarea.value = textBefore + prefix + text + '\n' + textAfter;
+                
+                const newCursorPos = start + prefix.length + text.length + 1;
+                textarea.selectionStart = newCursorPos;
+                textarea.selectionEnd = newCursorPos;
+
+                textarea.dispatchEvent(new Event('input', { bubbles: true }));
+                textarea.focus();
+            }
+
+            createMainSourceNode(audioCtx, frequency) {
+                let mainSource, modulator;
+                switch (this.settings.waveform) {
+                    case 'pulse':
+                        mainSource = audioCtx.createOscillator();
+                        mainSource.setPeriodicWave(this.createPulseWave(audioCtx, this.settings.pulseWidth));
+                        mainSource.frequency.value = frequency;
+                        break;
+                    case 'noise':
+                        mainSource = audioCtx.createBufferSource();
+                        const bufferSize = audioCtx.sampleRate * 0.5;
+                        const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                        const output = noiseBuffer.getChannelData(0);
+                        for (let i = 0; i < bufferSize; i++) {
+                            output[i] = Math.random() * 2 - 1;
+                        }
+                        mainSource.buffer = noiseBuffer;
+                        mainSource.loop = true;
+                        break;
+                    case 'fm':
+                        const carrier = audioCtx.createOscillator();
+                        carrier.type = 'sine';
+                        carrier.frequency.value = frequency;
+                        modulator = audioCtx.createOscillator();
+                        modulator.type = 'sine';
+                        modulator.frequency.value = frequency * 2;
+                        const fmDepthGain = audioCtx.createGain();
+                        fmDepthGain.gain.value = this.settings.fmDepth;
+                        modulator.connect(fmDepthGain);
+                        fmDepthGain.connect(carrier.frequency);
+                        mainSource = carrier;
+                        break;
+                    default:
+                        mainSource = audioCtx.createOscillator();
+                        mainSource.type = this.settings.waveform;
+                        mainSource.frequency.value = frequency;
+                }
+                return { mainSource, modulator };
+            }
+
+            createPulseWave(audioCtx, dutyCycle) {
+                const K = 100;
+                const real = new Float32Array(K);
+                const imag = new Float32Array(K);
+                for (let n = 1; n < K; n++) {
+                    const c = (1 / (n * Math.PI)) * Math.sin(n * Math.PI * dutyCycle);
+                    real[n] = c * 2 * Math.cos(n * Math.PI * dutyCycle);
+                    imag[n] = -c * 2 * Math.sin(n * Math.PI * dutyCycle);
+                }
+                return audioCtx.createPeriodicWave(real, imag, { disableNormalization: false });
+            }
+
+            createNoteNode(audioCtx, note, startTime, durationSec) {
+                const frequency = this.noteFrequencies[note];
+                if (!frequency && this.settings.waveform !== 'noise') return;
+
+                const { mainSource, modulator } = this.createMainSourceNode(audioCtx, frequency);
+                const gainNode = audioCtx.createGain();
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'lowpass';
+                const safeStartTime = Math.max(startTime, audioCtx.currentTime);
+                filter.frequency.setValueAtTime(this.settings.filterFreq, safeStartTime);
+                filter.Q.setValueAtTime(this.settings.filterQ, safeStartTime);
+                gainNode.gain.setValueAtTime(0, safeStartTime);
+                gainNode.gain.linearRampToValueAtTime(this.settings.volume, safeStartTime + this.settings.attack);
+                gainNode.gain.linearRampToValueAtTime(0, safeStartTime + durationSec + this.settings.release);
+                mainSource.connect(filter).connect(gainNode).connect(audioCtx.destination);
+                const stopTime = safeStartTime + durationSec + this.settings.release + 0.1;
+                mainSource.start(safeStartTime);
+                mainSource.stop(stopTime);
+                if (modulator) {
+                    modulator.start(safeStartTime);
+                    modulator.stop(stopTime);
+                }
+            }
+
+            scheduleSequence(audioCtx, onStep, onNote, startLineIndex) {
+                const code = this.sequencerCodeEl.value;
+                const allLines = code.split('\n');
+                const linesToPlay = allLines.slice(startLineIndex);
+                let cumulativeTime = 0;
+            
+                linesToPlay.forEach((line, index) => {
+                    const actualLineIndex = startLineIndex + index;
+                    const commands = line.split('|').map(cmd => cmd.trim());
+                    let maxDurationMsOnLine = 0;
+                
+                    if (line.trim() === '') {
+                        maxDurationMsOnLine = 250;
+                    } else {
+                        if (onStep) onStep(actualLineIndex, cumulativeTime);
+                        commands.forEach(command => {
+                            const parts = command.split(/\s+/);
+                            if (parts.length < 2) return;
+                            const note = parts[0].toUpperCase();
+                            const durationMs = parseInt(parts[1], 10);
+                            if (!isNaN(durationMs) && durationMs > 0) {
+                                if (durationMs > maxDurationMsOnLine) maxDurationMsOnLine = durationMs;
+                                this.createNoteNode(audioCtx, note, cumulativeTime / 1000, durationMs / 1000);
+                                if (onNote) onNote(note, cumulativeTime, durationMs);
+                            }
+                        });
+                    }
+                    if (maxDurationMsOnLine === 0 && line.trim() !== '') maxDurationMsOnLine = 100;
+                    cumulativeTime += maxDurationMsOnLine;
+                });
+                return cumulativeTime;
+            }
+
+            calculateSequenceDuration() {
+                const code = this.sequencerCodeEl.value;
+                const lines = code.split('\n');
+                let cumulativeTime = 0;
+                lines.forEach((line) => {
+                    const commands = line.split('|').map(cmd => cmd.trim());
+                    let maxDurationMsOnLine = 0;
+                    if (line.trim() === '') {
+                        maxDurationMsOnLine = 250;
+                    } else {
+                        commands.forEach(command => {
+                            const parts = command.split(/\s+/);
+                            if (parts.length >= 2) {
+                                const durationMs = parseInt(parts[1], 10);
+                                if (!isNaN(durationMs) && durationMs > 0 && durationMs > maxDurationMsOnLine) {
+                                    maxDurationMsOnLine = durationMs;
+                                }
+                            }
+                        });
+                    }
+                    if (maxDurationMsOnLine === 0 && line.trim() !== '') maxDurationMsOnLine = 100;
+                    cumulativeTime += maxDurationMsOnLine;
+                });
+                return cumulativeTime;
+            }
+            
+            encodeBufferToMp3(audioBuffer) {
+                const sampleRate = audioBuffer.sampleRate;
+                const mp3encoder = new lamejs.Mp3Encoder(1, sampleRate, 128);
+                const samples = audioBuffer.getChannelData(0);
+                const sampleBlockSize = 1152;
+                const mp3Data = [];
+            
+                for (let i = 0; i < samples.length; i += sampleBlockSize) {
+                    const sampleChunk = samples.subarray(i, i + sampleBlockSize);
+                    const int16Chunk = new Int16Array(sampleChunk.length);
+                    for (let j = 0; j < sampleChunk.length; j++) int16Chunk[j] = sampleChunk[j] * 32767;
+                    
+                    const mp3buf = mp3encoder.encodeBuffer(int16Chunk);
+                    if (mp3buf.length > 0) mp3Data.push(mp3buf);
+                }
+                const end = mp3encoder.flush();
+                if (end.length > 0) mp3Data.push(end);
+
+                return mp3Data;
+            }
+
+            updateHighlight(lineNumber) {
+                if (!this.highlightBarEl) return;
+                
+                if (lineNumber < 0) {
+                    this.highlightBarEl.style.display = 'none';
+                    return;
+                }
+                
+                const lineHeight = parseFloat(getComputedStyle(this.sequencerCodeEl).lineHeight);
+                const highlightY = lineNumber * lineHeight;
+
+                this.highlightBarEl.style.height = `${lineHeight}px`;
+                this.highlightBarEl.style.top = `${highlightY}px`;
+                this.highlightBarEl.style.display = 'block';
+            
+                this.lineNumbersEl.childNodes.forEach((div, index) => {
+                    div.classList.toggle('active', index === lineNumber);
+                });
+
+                const editor = this.sequencerCodeEl;
+                const editorScrollTop = editor.scrollTop;
+                const editorHeight = editor.clientHeight;
+                
+                if (highlightY < editorScrollTop || highlightY >= editorScrollTop + editorHeight) {
+                    editor.scrollTop = highlightY - (editorHeight / 2) + (lineHeight / 2);
+                }
+            }
         }
         
         window.addEventListener('load', () => new SimpleSynthesizer());
