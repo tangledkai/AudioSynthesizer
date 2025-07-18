@@ -1,4 +1,4 @@
-# **[TangledKai]-AudioSynthesizer_v1.0**
+# **[TangledKai]-AudioSynthesizer_v1.8**
 
 AudioSynthesizer is a simple web-based music production tool.
 
@@ -31,7 +31,7 @@ AudioSynthesizer is a simple web-based music production tool.
 
 _____
 
-# **[TangledKai]_傷害模擬器_v1.0**
+# **[TangledKai]_音頻合成器_v1.8**
 
 AudioSynthesizer這是一個簡易的網頁版音樂製作工具
 
