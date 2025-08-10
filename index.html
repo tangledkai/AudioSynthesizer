@@ -6,6 +6,19 @@
     <title>TangledKai Synth v1.5.0</title>
     <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
     <style>
+        /* MP3 匯出進度條 */
+        #export-loader-bg {
+            display: none; position: fixed; left: 0; top: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.35); z-index: 3000; justify-content: center; align-items: center;
+        }
+        #export-loader-box {
+            background: #222; border-radius: 16px; box-shadow: 0 8px 32px #000a; padding: 32px 28px 24px 28px;
+            min-width: 320px; display: flex; flex-direction: column; align-items: center;
+        }
+        #export-loader-label { color: #ffd700; font-size: 1.1em; margin-bottom: 18px; }
+        .loader { display: block; position: relative; height: 12px; width: 80%; border: 1px solid #fff; border-radius: 10px; overflow: hidden; background: #111; }
+    .loader-bar { position: absolute; left: 0; top: 0; height: 100%; width: 0; background: #ffd700; transition: width 0.2s linear; }
+        #export-loader-time { color: #ffd700; margin-top: 12px; }
 
         .modal-rate-bg {
             display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100vw; height: 100vh;
@@ -176,6 +189,14 @@
         </select>
     </div>
     <div class="main-container">
+        <!-- MP3 匯出進度條 -->
+        <div id="export-loader-bg">
+            <div id="export-loader-box">
+                <div id="export-loader-label">MP3 匯出中...</div>
+                <div class="loader"><div class="loader-bar" id="export-loader-bar"></div></div>
+                <div id="export-loader-time"></div>
+            </div>
+        </div>
         <div class="synthesizer">
             <h1 data-i18n-key="mainTitle">♬ Audio Synthesizer</h1>
             <div class="controls">
@@ -841,20 +862,55 @@
             async exportToMp3() {
                 if (this.isExporting || this.isPlayingSequence) return;
                 this.isExporting = true;
+                this._keyboardEnabled = false; // 暫停所有按鍵
                 this.exportBtn.textContent = translations[this.currentLanguage].exportRendering;
                 this.playBtn.disabled = true;
                 this.exportBtn.disabled = true;
+
+                // 顯示 loader
+                const loaderBg = document.getElementById('export-loader-bg');
+                const loaderBar = document.getElementById('export-loader-bar');
+                const loaderTime = document.getElementById('export-loader-time');
+                loaderBg.style.display = 'flex';
+                loaderBar.style.width = '0%';
+                loaderTime.textContent = '';
+
                 try {
                     const totalDurationMs = this.calculateSequenceDuration();
                     if (totalDurationMs <= 0) {
                         alert("沒有可匯出的音樂內容。");
                         throw new Error("No content to export");
                     }
+                    // 動態進度條
+                    let elapsed = 0;
+                    const totalSec = Math.ceil(totalDurationMs / 1000);
+                    loaderTime.textContent = `預計剩餘：${totalSec} 秒`;
+                    let interval = setInterval(() => {
+                        elapsed += 0.2;
+                        let percent = Math.min(90, (elapsed / totalSec) * 90); // 最多到90%
+                        loaderBar.style.width = percent + '%';
+                        let remain = Math.max(0, Math.ceil(totalSec - elapsed));
+                        loaderTime.textContent = `預計剩餘：${remain} 秒`;
+                    }, 200);
+
                     const sampleRate = 44100;
                     const offlineCtx = new OfflineAudioContext(1, sampleRate * (totalDurationMs / 1000), sampleRate);
                     this.scheduleSequence(offlineCtx, null, null, 0);
                     const renderedBuffer = await offlineCtx.startRendering();
+
+                    clearInterval(interval);
+                    loaderBar.style.width = '90%';
+                    loaderTime.textContent = 'MP3 編碼中...';
+
                     this.exportBtn.textContent = translations[this.currentLanguage].exportEncoding;
+                    // 模擬編碼進度條 90%~100%
+                    let percent = 90;
+                    let encodingInterval = setInterval(() => {
+                        percent += 2;
+                        loaderBar.style.width = Math.min(percent, 100) + '%';
+                        if (percent >= 100) clearInterval(encodingInterval);
+                    }, 80);
+
                     const mp3Data = this.encodeBufferToMp3(renderedBuffer);
                     const blob = new Blob(mp3Data, { type: 'audio/mp3' });
                     const url = URL.createObjectURL(blob);
@@ -865,11 +921,17 @@
                     a.click();
                     document.body.removeChild(a);
                     URL.revokeObjectURL(url);
+                    loaderBar.style.width = '100%';
+                    loaderTime.textContent = '完成！';
+                    clearInterval(encodingInterval);
+                    await new Promise(r => setTimeout(r, 600)); // 停留0.6秒再關閉
                 } catch (e) {
                     console.error("匯出失敗:", e);
                     if (e.message !== "No content to export") alert("匯出MP3時發生錯誤。");
                 } finally {
+                    loaderBg.style.display = 'none';
                     this.isExporting = false;
+                    this._keyboardEnabled = true;
                     this.exportBtn.textContent = translations[this.currentLanguage].exportBtn;
                     this.playBtn.disabled = false;
                     this.exportBtn.disabled = false;
