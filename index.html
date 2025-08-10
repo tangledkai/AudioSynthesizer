@@ -3,9 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Audio Synthesizer - Pro Editor v2.9</title>
+    <title>TangledKai Synth v1.5.0</title>
     <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
     <style>
+
+        .modal-rate-bg {
+            display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.35); justify-content: center; align-items: center;
+        }
+        .modal-rate {
+            background: #222; border-radius: 16px; box-shadow: 0 8px 32px #000a; padding: 32px 28px 24px 28px;
+            min-width: 320px; display: flex; flex-direction: column; align-items: center;
+        }
+        .modal-rate label { color: #ffd700; font-size: 1.1em; margin-bottom: 12px; }
+        .modal-rate input[type="number"] {
+            width: 120px; padding: 10px; font-size: 1.2em; border-radius: 8px; border: 1px solid #ffd700; margin-bottom: 18px; background: #111; color: #ffd700;
+        }
+        .modal-rate .modal-btns { display: flex; gap: 18px; }
+        .modal-rate button {
+            padding: 8px 22px; border-radius: 8px; border: none; font-size: 1em; cursor: pointer;
+            background: linear-gradient(135deg, #ffd700 0%, #ffb700 100%); color: #222; font-weight: bold;
+        }
+        .modal-rate button.cancel { background: #444; color: #eee; }
+        .context-menu {
+            position: fixed;
+            display: none;
+            background: linear-gradient(145deg, #2a2a2a 0%, #1a1a1a 100%);
+            border-radius: 8px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.7);
+            z-index: 1000;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+        .context-menu ul {
+            list-style: none;
+            margin: 0;
+            padding: 8px 0;
+        }
+        .context-menu li {
+            padding: 10px 25px;
+            color: rgba(255, 215, 0, 0.9);
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .context-menu li:hover {
+            background-color: rgba(255, 215, 0, 0.15);
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Arial', sans-serif;
@@ -15,7 +57,7 @@
             justify-content: center;
             align-items: center;
             padding: 20px;
-            overflow: hidden; /* Prevent body from scrolling */
+            overflow: hidden;
         }
         .main-container { display: flex; gap: 35px; width: 100%; max-width: 1600px; height: 90vh; /* Set a fixed height */ }
         .synthesizer, .sequencer-panel {
@@ -108,8 +150,30 @@
     </style>
 </head>
 <body>
+    <div id="sequencer-context-menu" class="context-menu">
+        <ul>
+            <li data-action="sync-rate">同步速率</li>
+        </ul>
+    </div>
+    <!-- 自訂同步速率 modal -->
+    <div id="modal-rate-bg" class="modal-rate-bg">
+        <div class="modal-rate">
+            <label for="modal-rate-input">請輸入新的同步速率 (毫秒)：</label>
+            <input id="modal-rate-input" type="number" min="1" max="10000" value="150" />
+            <div class="modal-btns">
+                <button id="modal-rate-ok">確定</button>
+                <button id="modal-rate-cancel" class="cancel">取消</button>
+            </div>
+        </div>
+    </div>
     <div class="lang-switcher">
-        <button id="lang-toggle-btn">English</button>
+        <select id="lang-select">
+            <option value="zh-TW">繁體中文</option>
+            <option value="zh-CN">简体中文</option>
+            <option value="en">English</option>
+            <option value="ja">日本語</option>
+            <option value="ko">한국어</option>
+        </select>
     </div>
     <div class="main-container">
         <div class="synthesizer">
@@ -215,26 +279,59 @@
     <script>
         const translations = {
             'zh-TW': {
-                mainTitle: '♬ 音頻合成器', sequencerTitle: '程式碼音序器', oscillatorTitle: '振盪器', waveformLabel: '波形類型',
+                mainTitle: '♬ 糾結合成器', sequencerTitle: '程式碼音序器', oscillatorTitle: '振盪器', waveformLabel: '波形類型',
                 waveSine: '正弦波 (Sine)', waveSquare: '方波 (Square)', waveSawtooth: '鋸齒波 (Sawtooth)', waveTriangle: '三角波 (Triangle)',
                 wavePulse: '脈衝波 (Pulse)', waveNoise: '噪音 (Noise)', waveFM: 'FM 合成', volumeLabel: '音量',
                 pulseWidthLabel: '脈衝寬度', fmDepthLabel: 'FM 深度', filterTitle: '濾波器', filterFreqLabel: '截止頻率',
-                filterQLabel: '共振 (Q值)', envelopeTitle: '包絡', attackLabel: '起音時間', releaseLabel: '釋音時間',
+                filterQLabel: '共振 (Q值)', envelopeTitle: '包絡線', attackLabel: '起音時間', releaseLabel: '釋音時間',
                 playBtn: '播放', stopBtn: '停止', exportBtn: '匯出 MP3', exportRendering: '渲染中...',
                 exportEncoding: 'MP3編碼中...', authorLink: 'tangledkai_2.0 製作',
-                sequencerPlaceholder: '語法: 音名 時長(毫秒)\n--- 代表休止符\n| 分隔同時播放的音符\n\n範例 (和弦):\nC4 500 | E4 500 | G4 500\n--- 250\nF3 500 | A3 500 | C4 500 \n\n寫入:快捷鍵『|』  循環:快捷鍵『]』\n音域快速切換:快捷鍵『~』&『1』',
-                langToggle: 'English', loopLabel: '循環', recordLabel: '寫入'
+                sequencerPlaceholder: '語法: 音名 時長(毫秒)\n--- 代表休止符\n| 分隔同時播放的音符\n\n範例 (和弦):\nC4 500 | E4 500 | G4 500\n--- 250\nF3 500 | A3 500 | C4 500 \n\n循環:快捷鍵『]』 寫入:快捷鍵『|』\n音域切換:快捷鍵『~』&『1』\n\n同步速率:選取音符右鍵點選「同步速率」',
+                langName: '繁體中文', loopLabel: '循環', recordLabel: '寫入'
+            },
+            'zh-CN': {
+                mainTitle: '♬ 纠结合成器', sequencerTitle: '代码音序器', oscillatorTitle: '振荡器', waveformLabel: '波形类型',
+                waveSine: '正弦波 (Sine)', waveSquare: '方波 (Square)', waveSawtooth: '锯齿波 (Sawtooth)', waveTriangle: '三角波 (Triangle)',
+                wavePulse: '脉冲波 (Pulse)', waveNoise: '噪音 (Noise)', waveFM: 'FM 合成', volumeLabel: '音量',
+                pulseWidthLabel: '脉冲宽度', fmDepthLabel: 'FM 深度', filterTitle: '滤波器', filterFreqLabel: '截止频率',
+                filterQLabel: '共振 (Q值)', envelopeTitle: '包络线', attackLabel: '起音时间', releaseLabel: '释音时间',
+                playBtn: '播放', stopBtn: '停止', exportBtn: '导出 MP3', exportRendering: '渲染中...',
+                exportEncoding: 'MP3编码中...', authorLink: 'tangledkai_2.0 制作',
+                sequencerPlaceholder: '语法: 音名 时长(毫秒)\n--- 代表休止符\n| 分隔同时播放的音符\n\n范例 (和弦):\nC4 500 | E4 500 | G4 500\n--- 250\nF3 500 | A3 500 | C4 500 \n\n循环:快捷键“]” 写入:快捷键“|”\n音域切换:快捷键“~”&“1”\n\n同步速率:选中音符右键点击“同步速率”',
+                langName: '简体中文', loopLabel: '循环', recordLabel: '写入'
             },
             'en': {
-                mainTitle: '♬ Audio Synthesizer', sequencerTitle: 'Code Sequencer', oscillatorTitle: 'Oscillator', waveformLabel: 'Waveform Type',
+                mainTitle: '♬ TangledKai Synth', sequencerTitle: 'Code Sequencer', oscillatorTitle: 'Oscillator', waveformLabel: 'Waveform Type',
                 waveSine: 'Sine', waveSquare: 'Square', waveSawtooth: 'Sawtooth', waveTriangle: 'Triangle',
                 wavePulse: 'Pulse', waveNoise: 'Noise', waveFM: 'FM Synthesis', volumeLabel: 'Volume',
                 pulseWidthLabel: 'Pulse Width', fmDepthLabel: 'FM Depth', filterTitle: 'Filter', filterFreqLabel: 'Cutoff Frequency',
                 filterQLabel: 'Resonance (Q)', envelopeTitle: 'Envelope', attackLabel: 'Attack Time', releaseLabel: 'Release Time',
                 playBtn: 'Play', stopBtn: 'Stop', exportBtn: 'Export MP3', exportRendering: 'Rendering...',
                 exportEncoding: 'Encoding MP3...', authorLink: 'Made by tangledkai_2.0',
-                sequencerPlaceholder: 'Syntax: Note Duration(ms)\n--- for rests\n| to play notes simultaneously\n\nExample (Chord):\nC4 500 | E4 500 | G4 500\n--- 250\nF3 500 | A3 500 | C4 500',
-                langToggle: '正體中文', loopLabel: 'Loop', recordLabel: 'Record'
+                sequencerPlaceholder: 'Syntax: Note Duration(ms)\n--- for rests\n| to play notes simultaneously\n\nExample (Chord):\nC4 500 | E4 500 | G4 500\n--- 250\nF3 500 | A3 500 | C4 500 \n\nLoop: Shortcut \']\'  Write: Shortcut \'|\'\nOctave Switch: Shortcut \'~\' & \'1\'\n\nSync Rate: Select notes \nright-click and choose "Sync Rate"',
+                langName: 'English', loopLabel: 'Loop', recordLabel: 'Record'
+            },
+            'ja': {
+                mainTitle: '♬ もつれ合成器', sequencerTitle: 'コードシーケンサー', oscillatorTitle: 'オシレーター', waveformLabel: '波形タイプ',
+                waveSine: 'サイン波 (Sine)', waveSquare: '矩形波 (Square)', waveSawtooth: 'ノコギリ波 (Sawtooth)', waveTriangle: '三角波 (Triangle)',
+                wavePulse: 'パルス波 (Pulse)', waveNoise: 'ノイズ (Noise)', waveFM: 'FM 合成', volumeLabel: '音量',
+                pulseWidthLabel: 'パルス幅', fmDepthLabel: 'FM 深度', filterTitle: 'フィルター', filterFreqLabel: 'カットオフ周波数',
+                filterQLabel: 'レゾナンス (Q)', envelopeTitle: 'エンベロープ', attackLabel: 'アタックタイム', releaseLabel: 'リリースタイム',
+                playBtn: '再生', stopBtn: '停止', exportBtn: 'MP3 書き出し', exportRendering: 'レンダリング中...',
+                exportEncoding: 'MP3 エンコード中...', authorLink: 'tangledkai_2.0 制作',
+                sequencerPlaceholder: '構文: 音名 時間(ミリ秒)\n--- 休符\n| 同時に再生\n\n例 (和音):\nC4 500 | E4 500 | G4 500\n--- 250\nF3 500 | A3 500 | C4 500 \n\nループ: ショートカット「]」 書き込み: ショートカット「|」\nオクターブ切替: ショートカット「~」＆「1」\n\n同期速度: 音符を選択し右クリックで「同期速度」',
+                langName: '日本語', loopLabel: 'ループ', recordLabel: '記録'
+            },
+            'ko': {
+                mainTitle: '♬ 얽힘 합성기', sequencerTitle: '코드 시퀀서', oscillatorTitle: '오실레이터', waveformLabel: '파형 종류',
+                waveSine: '사인파 (Sine)', waveSquare: '사각파 (Square)', waveSawtooth: '톱니파 (Sawtooth)', waveTriangle: '삼각파 (Triangle)',
+                wavePulse: '펄스파 (Pulse)', waveNoise: '노이즈 (Noise)', waveFM: 'FM 합성', volumeLabel: '볼륨',
+                pulseWidthLabel: '펄스 폭', fmDepthLabel: 'FM 깊이', filterTitle: '필터', filterFreqLabel: '컷오프 주파수',
+                filterQLabel: '공진 (Q)', envelopeTitle: '엔벨로프', attackLabel: '어택 타임', releaseLabel: '릴리즈 타임',
+                playBtn: '재생', stopBtn: '정지', exportBtn: 'MP3 내보내기', exportRendering: '렌더링 중...',
+                exportEncoding: 'MP3 인코딩 중...', authorLink: 'tangledkai_2.0 제작',
+                sequencerPlaceholder: '구문: 음 이름 시간(밀리초)\n--- 쉼표\n| 동시에 재생\n\n예시 (코드):\nC4 500 | E4 500 | G4 500\n--- 250\nF3 500 | A3 500 | C4 500 \n\n루프: 단축키 \']\'  입력: 단축키 \'|\'\n옥타브 전환: 단축키 \'~\' & \'1\'\n\n동기화 속도: 음표 선택 후 우클릭 "동기화 속도"',
+                langName: '한국어', loopLabel: '루프', recordLabel: '기록'
             }
         };
 
@@ -277,10 +374,11 @@
                 this.syncHighlighterContent();
                 this.updateLineNumbers();
                 this.updateCursorHighlight();
+                this.initContextMenu(); // <-- 新增這一行
             }
             
             initDomElements() {
-                this.langToggleBtn = document.getElementById('lang-toggle-btn');
+                this.langSelect = document.getElementById('lang-select');
                 this.pulseWidthControl = document.getElementById('pulse-width-control');
                 this.fmDepthControl = document.getElementById('fm-depth-control');
                 this.sequencerCodeEl = document.getElementById('sequencerCode');
@@ -293,6 +391,7 @@
                 this.lineNumbersEl = document.getElementById('line-numbers');
                 this.loopToggleCheckbox = document.getElementById('loop-toggle-checkbox');
                 this.recordToggleCheckbox = document.getElementById('record-toggle-checkbox');
+                this.contextMenuEl = document.getElementById('sequencer-context-menu'); // <-- 新增這一行
             }
 
             setLanguage(lang) {
@@ -305,15 +404,15 @@
                     }
                 });
                 this.sequencerCodeEl.placeholder = langDict.sequencerPlaceholder;
-                this.langToggleBtn.textContent = langDict.langToggle;
+                // 設定下拉選單顯示當前語言
+                if (this.langSelect) this.langSelect.value = lang;
                 this.updateDisplayValues();
                 this.updateLineNumbers();
             }
             
             setupEventListeners() {
-                this.langToggleBtn.addEventListener('click', () => {
-                    const newLang = this.currentLanguage === 'zh-TW' ? 'en' : 'zh-TW';
-                    this.setLanguage(newLang);
+                this.langSelect.addEventListener('change', (e) => {
+                    this.setLanguage(e.target.value);
                 });
 
                 this.playBtn.addEventListener('click', () => this.playSequence());
@@ -353,24 +452,21 @@
                 
                 document.addEventListener('keydown', (e) => {
                     if (e.target === this.sequencerCodeEl) return;
+                    if (this._keyboardEnabled === false) return;
                     if (e.key === '`' || e.key === '~') { this.changeOctave(-1); return; }
                     if (e.key === '1') { this.changeOctave(1); return; }
 
-            // 快捷鍵：] 切換循環(Loop)
-            if (e.key === ']') {
-                this.loopToggleCheckbox.checked = !this.loopToggleCheckbox.checked;
-                this.isLooping = this.loopToggleCheckbox.checked;
-                return;
-            }
-            // 快捷鍵：\ 切換寫入(Record)
-            if (e.key === '\\') {
-                this.recordToggleCheckbox.checked = !this.recordToggleCheckbox.checked;
-                this.isRecording = this.recordToggleCheckbox.checked;
-                this.sequencerCodeEl.disabled = this.isRecording;
-                // 不自動 focus 編輯區，避免無法再次用快捷鍵取消
-                return;
-            }
-                    
+                    if (e.key === ']') {
+                        this.loopToggleCheckbox.checked = !this.loopToggleCheckbox.checked;
+                        this.isLooping = this.loopToggleCheckbox.checked;
+                        return;
+                    }
+                    if (e.key === '\\') {
+                        this.recordToggleCheckbox.checked = !this.recordToggleCheckbox.checked;
+                        this.isRecording = this.recordToggleCheckbox.checked;
+                        this.sequencerCodeEl.disabled = this.isRecording;
+                        return;
+                    }
                     const note = this.keyMap[e.key.toLowerCase()];
                     if (note && !e.repeat && !this.activeOscillators.has(note)) {
                         this.playNote(note);
@@ -381,6 +477,7 @@
                 
                 document.addEventListener('keyup', (e) => {
                     if (e.target === this.sequencerCodeEl) return;
+                    if (this._keyboardEnabled === false) return;
                     const note = this.keyMap[e.key.toLowerCase()];
                     if (note) {
                         this.stopNote(note);
@@ -406,6 +503,146 @@
                 this.sequencerCodeEl.addEventListener('focus', () => this.updateCursorHighlight());
             }
             
+            initContextMenu() {
+                const textarea = this.sequencerCodeEl;
+                textarea.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    setTimeout(() => textarea.focus(), 0);
+                    const selection = textarea.value.substring(textarea.selectionStart, textarea.selectionEnd);
+                    if (selection.trim().length > 0) {
+                        this.contextMenuEl.style.top = `${e.clientY}px`;
+                        this.contextMenuEl.style.left = `${e.clientX}px`;
+                        this.contextMenuEl.style.display = 'block';
+                    } else {
+                        this.contextMenuEl.style.display = 'none';
+                    }
+                });
+                document.addEventListener('mousedown', (e) => {
+                    if (!this.contextMenuEl.contains(e.target)) {
+                        this.contextMenuEl.style.display = 'none';
+                    }
+                });
+                this.contextMenuEl.addEventListener('click', (e) => {
+                    const action = e.target.getAttribute('data-action');
+                    if (!action) return;
+                    if (action === 'sync-rate') {
+                        this.contextMenuEl.style.display = 'none';
+                        this.showRateModal();
+                    }
+                    this.contextMenuEl.style.display = 'none';
+                });
+
+                // Modal 事件
+                this.modalRateBg = document.getElementById('modal-rate-bg');
+                this.modalRateInput = document.getElementById('modal-rate-input');
+                this.modalRateOk = document.getElementById('modal-rate-ok');
+                this.modalRateCancel = document.getElementById('modal-rate-cancel');
+                this._modalRateSelection = null;
+                this.modalRateOk.addEventListener('click', () => {
+                    // 按下確定時，重新取得 textarea 的選取範圍與內容
+                    const textarea = this.sequencerCodeEl;
+                    textarea.focus();
+                    const start = textarea.selectionStart;
+                    const end = textarea.selectionEnd;
+                    const selection = textarea.value.substring(start, end);
+                    const val = this.modalRateInput.value;
+                    if (val && !isNaN(val) && selection.length > 0) {
+                        const newRate = parseInt(val, 10);
+                        const updatedText = this.synchronizeRateAll(selection, newRate);
+                        this.replaceSelection(updatedText, start, end);
+                        this.hideRateModal();
+                    }
+                });
+                this.modalRateCancel.addEventListener('click', () => this.hideRateModal());
+                this.modalRateInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') this.modalRateOk.click();
+                    if (e.key === 'Escape') this.hideRateModal();
+                });
+            }
+
+            showRateModal() {
+                // 彈出 modal 前，暫停琴鍵功能與音色
+                this._keyboardEnabled = false;
+                if (typeof this.stopAllNotes === 'function') {
+                    this.stopAllNotes();
+                } else if (typeof this.stopAllSounds === 'function') {
+                    this.stopAllSounds();
+                }
+                const textarea = this.sequencerCodeEl;
+                textarea.blur();
+                setTimeout(() => {
+                    this.modalRateInput.value = '150';
+                    this.modalRateBg.style.display = 'flex';
+                    this.modalRateInput.focus();
+                }, 30);
+            }
+            hideRateModal() {
+                this.modalRateBg.style.display = 'none';
+                // 關閉 modal 後恢復琴鍵功能與音色
+                this._keyboardEnabled = true;
+                if (typeof this.resumeAllSounds === 'function') {
+                    this.resumeAllSounds();
+                }
+                this.sequencerCodeEl.focus();
+            }
+
+            // 將每個音符的速率都同步（每個音符後的數字都改，支援多個音符與升降記號）
+            synchronizeRateAll(text, newRate) {
+                // 允許多行，每行多個音符（| 分隔），每個音符格式: 名稱 數字
+                // 名稱: A-G, 可有#或b, 一位數字, 後面可有多餘空格
+                // 例: G#4 150, A#4 150, F3 150
+                return text.replace(/([A-G][#b]?\d+)\s*\d+/g, (match, note) => `${note} ${newRate}`);
+            }
+
+            // 替換選取內容（可指定 start/end）
+            replaceSelection(newText, start, end) {
+                const textarea = this.sequencerCodeEl;
+                if (typeof start !== 'number' || typeof end !== 'number') {
+                    start = textarea.selectionStart;
+                    end = textarea.selectionEnd;
+                }
+                const textBefore = textarea.value.substring(0, start);
+                const textAfter = textarea.value.substring(end);
+                textarea.value = textBefore + newText + textAfter;
+                textarea.selectionStart = start;
+                textarea.selectionEnd = start + newText.length;
+                textarea.dispatchEvent(new Event('input', { bubbles: true }));
+                textarea.focus();
+            }
+            // 琴鍵事件攔截（需在 keydown/keyup 事件處加判斷 this._keyboardEnabled）
+            // ...existing code...
+
+            // 輔助方法：同步速率
+            synchronizeRate(text, newRate) {
+                return text.split('\n').map(line => {
+                    return line.split('|').map(part => {
+                        const trimmedPart = part.trim();
+                        if (trimmedPart === '') return part;
+
+                        const segments = trimmedPart.split(/\s+/); // 用空白分割
+                        if (segments.length >= 2 && !isNaN(segments[segments.length - 1])) {
+                            segments[segments.length - 1] = newRate; // 只替換最後一個數字
+                            return segments.join(' ');
+                        }
+                        return part; // 如果格式不符，返回原樣
+                    }).join(' | ');
+                }).join('\n');
+            }
+
+            // 輔助方法：替換選取內容
+            replaceSelection(newText) {
+                const textarea = this.sequencerCodeEl;
+                const start = textarea.selectionStart;
+                const end = textarea.selectionEnd;
+
+                // 手動觸發 input 事件，確保行號等UI能同步更新
+                document.execCommand('insertText', false, newText);
+                
+                // 選取剛替換的內容
+                textarea.focus();
+                textarea.selectionStart = start;
+                textarea.selectionEnd = start + newText.length;
+            }
             updateLineNumbers() {
                 this.lineNumbersEl.innerHTML = ''; 
                 const lineCount = this.sequencerCodeEl.value.split('\n').length || 1;
@@ -444,6 +681,18 @@
             }
 
             changeOctave(direction) {
+                // --- 修正開始 ---
+                // 在切換音域前，先強制停止所有目前由鍵盤觸發的音符，並移除它們的視覺回饋
+                const notesToStop = [...this.activeOscillators.keys()];
+                notesToStop.forEach(note => {
+                    this.stopNote(note);
+                    const keyEl = document.querySelector(`.key[data-note="${note}"]`);
+                    if (keyEl) {
+                        keyEl.classList.remove('active');
+                    }
+                });
+                // --- 修正結束 ---
+
                 let newIndex = this.currentOctaveIndex + direction;
                 if (newIndex < 0) newIndex = this.octaveRanges.length - 1;
                 if (newIndex >= this.octaveRanges.length) newIndex = 0;
